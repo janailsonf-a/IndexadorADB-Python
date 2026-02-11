@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- STATUS -->
+<!--<div class="status-line">-->
+<!--    <i class="bi bi-check-circle-fill"></i>-->
+<!--&lt;!&ndash;        <span>Sistema operacional normal</span>&ndash;&gt;-->
+<!--</div>-->
+
+<!-- MÉTRICAS -->
+<div class="metrics">
+
+    <div class="metric-card">
+        <i class="bi bi-hdd"></i>
+        <span>Uso de Disco</span>
+        <strong>{{ data.disk.usage_percent }}%</strong>
+    </div>
+
+    <div class="metric-card">
+        <i class="bi bi-cpu"></i>
+        <span>CPU</span>
+        <strong>{{ data.metrics.cpu }}%</strong>
+    </div>
+
+    <div class="metric-card">
+        <i class="bi bi-memory"></i>
+        <span>RAM</span>
+        <strong>{{ data.metrics.ram }}%</strong>
+    </div>
+
+    <div class="metric-card">
+        <i class="bi bi-database"></i>
+        <span>Arquivos Indexados</span>
+        <strong>{{ total_indexed }}</strong>
+    </div>
+
+</div>
+
+<!-- INDEXADOR -->
+<div class="section">
+    <h6>Status do Indexador</h6>
+    <p>Processados: {{ idx.processed }} / {{ idx.total }}</p>
+    <div class="progress mb-2">
+        <div class="progress-bar" style="width: {{ idx.percent }}%"></div>
+    </div>
+    <small>Velocidade: {{ idx.speed }} arquivos/s • ETA: {{ idx.eta_sec }}s</small>
+</div>
+
+<!-- DISCO -->
+<div class="section">
+    <h6>Uso de Disco</h6>
+    <p>
+        Total: {{ data.disk.total_tb }} TB •
+        Usado: {{ data.disk.used_tb }} TB •
+        Livre: {{ data.disk.free_tb }} TB
+    </p>
+    <div class="progress">
+        <div class="progress-bar" style="width: {{ data.disk.usage_percent }}%"></div>
+    </div>
+</div>
+<!-- LOGS / TERMINAL -->
+<div class="activities-terminal">
+
+  <div class="activities-terminal-header">
+    <div class="terminal-title">$ tail -n 10 activities.log</div>
+    <button class="terminal-btn" onclick="clearActivities()">limpar histórico</button>
+  </div>
+
+  <pre id="activitiesTerminal" class="activities-terminal-body">
+Carregando atividades...
+  </pre>
+
+</div>
+
+<script>
+function formatLine(a){
+    const time = new Date(a.created_at)
+        .toISOString()
+        .replace("T"," ")
+        .split(".")[0];
+
+    const action = a.action.toUpperCase().padEnd(8);
+    const file = (a.filename || "-").padEnd(25);
+    const path = a.rel_path || "";
+
+    return `${time} ${action} ${file}\n→ ${path}`;
+}
+
+function loadActivities(){
+    fetch("/api/activities")
+        .then(r => r.json())
+        .then(data => {
+            const el = document.getElementById("activitiesTerminal");
+
+            if(!data.length){
+                el.textContent = "Nenhuma atividade registrada.";
+                return;
+            }
+
+            el.innerHTML = "";
+
+            data.forEach(a => {
+                const time = new Date(a.created_at)
+                    .toISOString()
+                    .replace("T"," ")
+                    .split(".")[0];
+
+                const action = a.action.toUpperCase().padEnd(8);
+                const file = a.filename || "-";
+                const path = a.rel_path || "";
+
+                let cls = "log-default";
+                if(a.action === "search")   cls = "log-search";
+                if(a.action === "preview")  cls = "log-preview";
+                if(a.action === "download") cls = "log-download";
+                if(a.action === "delete")   cls = "log-delete";
+
+                el.innerHTML +=
+`<span class="${cls}">${time} ${action} ${file}</span>
+<span class="log-path">→ ${path}</span>\n`;
+            });
+        });
+}
+
+function clearActivities(){
+    if(!confirm("Limpar histórico de atividades?")) return;
+    fetch("/api/activities/clear", { method:"POST" })
+        .then(() => loadActivities());
+}
+
+loadActivities();
+</script>
+
+
+
+
+
+
+{% endblock %}

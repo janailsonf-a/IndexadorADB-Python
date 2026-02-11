@@ -1,0 +1,569 @@
+:root{
+    --adb-blue: #0047B9;
+    --adb-orange: #FF6B00;
+    --adb-yellow: #FFD900;
+    --bg-light: #f5f7fa;
+    --text-dark: #1f2937;
+}
+
+/* RESET */
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont;
+    background:var(--bg-light);
+    color:var(--text-dark);
+}
+
+/* =========================
+   LAYOUT
+========================= */
+.app{
+    display:flex;
+    min-height:100vh;
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+.sidebar{
+    position:fixed;
+    top:0;
+    left:0;
+    width:260px;
+    height:100vh;
+    background:var(--adb-orange);
+    padding:20px 16px;
+    display:flex;
+    flex-direction:column;
+    gap:24px;
+    z-index:100;
+}
+
+.sidebar-logo{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:12px 0;
+}
+
+.sidebar-logo img{
+    max-width:200px;
+    max-height:100px;
+    object-fit:contain;
+}
+
+.sidebar-nav{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+.sidebar-nav a{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:12px 14px;
+    border-radius:10px;
+    color:#fff;
+    text-decoration:none;
+    font-size:.9rem;
+    transition:.2s;
+}
+
+.sidebar-nav a:hover{
+    background:rgba(255,255,255,.15);
+}
+
+.sidebar-nav a.active{
+    background:var(--adb-blue);
+    font-weight:600;
+}
+
+/* =========================
+   CONTEÚDO
+========================= */
+.content{
+    margin-left:260px;
+    padding:32px 48px;
+    min-height:100vh;
+    width:calc(100% - 260px);
+    background:var(--bg-light);
+
+    max-width: 1600px;
+}
+
+
+/* =========================
+   TOPBAR / BUSCA
+========================= */
+.search-bar{
+    background:#fff;
+    padding:16px;
+    border-radius:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,.05);
+    margin-bottom:20px;
+    max-width:none;
+}
+
+.search-form{
+    display:flex;
+    gap:12px;
+}
+
+.search-form input,
+.search-form select{
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid #e5e7eb;
+    font-size:.9rem;
+}
+
+.search-form input{
+    flex:1;
+}
+
+.search-form button{
+    background:var(--adb-orange);
+    border:none;
+    color:#fff;
+    padding:0 20px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.search-meta{
+    margin-top:8px;
+    font-size:.75rem;
+    color:#6b7280;
+}
+
+/* =========================
+   MÉTRICAS
+========================= */
+.metrics{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:16px;
+    margin-bottom:28px;
+}
+
+.metric-card{
+    background:#fff;
+    border-radius:12px;
+    padding:16px;
+    box-shadow:0 2px 8px rgba(0,0,0,.05);
+}
+
+.metric-card span{
+    font-size:.75rem;
+    color:#6b7280;
+}
+
+.metric-card strong{
+    display:block;
+    font-size:1.4rem;
+    color:var(--adb-blue);
+    margin-top:4px;
+}
+
+/* =========================
+   SEÇÃO
+========================= */
+.section{
+    background:#fff;
+    border-radius:14px;
+    padding:24px;
+    box-shadow:0 6px 20px rgba(0,0,0,.06);
+    margin-bottom:32px;
+    width:100%;
+}
+
+.section h6{
+    font-size:.9rem;
+    margin-bottom:12px;
+    font-weight:600;
+}
+
+/* =========================
+   TOGGLE LISTA / GRID
+========================= */
+.view-toggle{
+    display:flex;
+    gap:8px;
+    margin-bottom:12px;
+}
+
+.view-toggle button{
+    border:1px solid #e5e7eb;
+    background:#fff;
+    padding:6px 12px;
+    border-radius:8px;
+    font-size:.8rem;
+    cursor:pointer;
+}
+
+.view-toggle button.active{
+    background:var(--adb-blue);
+    color:#fff;
+    border-color:var(--adb-blue);
+}
+
+/* =========================
+   TABELA
+========================= */
+.results-table{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0 6px;
+}
+
+.results-table thead th{
+    font-size:.7rem;
+    text-transform:uppercase;
+    color:#6b7280;
+    padding:8px;
+}
+
+.results-table tbody tr{
+    background:#fff;
+    box-shadow:0 2px 6px rgba(0,0,0,.04);
+}
+
+.results-table td{
+    padding:10px;
+    font-size:.85rem;
+}
+
+/* EXT */
+.ext-badge{
+    background:var(--adb-yellow);
+    color:#5c4500;
+    padding:4px 8px;
+    border-radius:6px;
+    font-size:.7rem;
+    font-weight:600;
+}
+
+/* =========================
+   AÇÕES
+========================= */
+.actions{
+    display:flex;
+    gap:6px;
+}
+
+.actions a,
+.actions button{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:6px;
+    padding:6px;
+    color:var(--adb-blue);
+    cursor:pointer;
+    transition:.15s;
+}
+
+.actions a:hover,
+.actions button:hover{
+    background:#f5f7fa;
+    border-color:var(--adb-blue);
+}
+
+/* =========================
+   BREADCRUMB
+========================= */
+.breadcrumb-path{
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px;
+    font-size:.7rem;
+    color:#6b7280;
+    margin-top:4px;
+}
+
+.breadcrumb-item button{
+    background:none;
+    border:none;
+    padding:0;
+    color:var(--adb-blue);
+    cursor:pointer;
+    font-size:.7rem;
+}
+
+.breadcrumb-item button:hover{
+    text-decoration:underline;
+}
+
+.breadcrumb-sep{
+    color:#9ca3af;
+}
+
+/* =========================
+   GRID DE IMAGENS
+========================= */
+.image-grid{
+    display:none;
+    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+    gap:24px;
+    margin-top:24px;
+    width:100%;
+}
+
+
+.image-card{
+    background:#fff;
+    border-radius:12px;
+    overflow:hidden;
+    cursor:pointer;
+    box-shadow:0 6px 16px rgba(0,0,0,.08);
+    transition:.2s;
+}
+
+.image-card:hover{
+    transform:translateY(-4px);
+}
+
+.image-card img{
+    width:100%;
+    height:180px;
+    object-fit:contain;
+    background:#f5f7fa;
+}
+
+
+.image-meta{
+    padding:8px;
+    font-size:.75rem;
+    text-align:center;
+}
+
+/* =========================
+   EMPTY STATE
+========================= */
+.empty-state{
+    background:#fff;
+    border-radius:12px;
+    padding:40px;
+    text-align:center;
+    box-shadow:0 2px 8px rgba(0,0,0,.05);
+    color:#6b7280;
+}
+
+/* =========================
+   PAGINAÇÃO
+========================= */
+.pagination-wrapper{
+    display:flex;
+    justify-content:center;
+    gap:6px;
+    margin-top:24px;
+}
+
+.page-btn{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:8px;
+    padding:6px 10px;
+    font-size:.8rem;
+    color:var(--adb-blue);
+}
+
+.page-btn.active{
+    background:var(--adb-blue);
+    color:#fff;
+}
+
+/* =========================
+   SPINNER
+========================= */
+.spinner{
+    width:14px;
+    height:14px;
+    border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff;
+    border-radius:50%;
+    animation:spin .6s linear infinite;
+    display:inline-block;
+    margin-right:6px;
+}
+
+@keyframes spin{
+    to{ transform:rotate(360deg); }
+}
+
+/* =========================
+   HIGHLIGHT
+========================= */
+mark{
+    background:var(--adb-yellow);
+    color:#5c4500;
+    padding:0 2px;
+    border-radius:3px;
+}
+/* =========================
+   TERMINAL - ATIVIDADES
+========================= */
+
+.activities-terminal{
+    background: #020617;
+    color: #e5e7eb;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    padding: 18px;
+    border-radius: 12px;
+    box-shadow:
+        inset 0 0 0 1px #1e293b,
+        0 12px 30px rgba(0,0,0,.45);
+    margin-top: 24px;
+}
+
+/* HEADER */
+.activities-terminal-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.terminal-title{
+    color: #38bdf8;
+    font-size: 12px;
+}
+
+/* BOTÃO */
+.terminal-btn{
+    background: transparent;
+    border: 1px solid #334155;
+    color: #cbd5f5;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: .15s;
+}
+
+.terminal-btn:hover {
+    background: #0f172a;
+    border-color: #38bdf8;
+    color: #38bdf8;
+}
+
+/* CORPO */
+.activities-terminal-body {
+    white-space: pre-wrap;
+    margin: 0;
+}
+
+/* =========================
+   CORES POR AÇÃO
+========================= */
+
+.log-search   { color: #38bdf8; } /* azul */
+.log-preview  { color: #a78bfa; } /* roxo */
+.log-download { color: #22c55e; } /* verde */
+.log-delete   { color: #ef4444; } /* vermelho */
+.log-default  { color: #e5e7eb; }
+
+/* INDENTAÇÃO DO CAMINHO */
+.log-path {
+    color: #94a3b8;
+    padding-left: 18px;
+}
+
+/* VAZIO */
+.activities-terminal-body:empty::before {
+    content: "Nenhuma atividade registrada.";
+    color: #64748b;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+    .activities-terminal {
+        font-size: 12px;
+        padding: 14px;
+    }
+}
+
+/* =========================
+   TERMINAL – ATIVIDADES
+========================= */
+
+.activities-terminal {
+    background: #020617;               /* fundo escuro */
+    color: #e5e7eb;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    padding: 20px;
+    border-radius: 14px;
+    margin-top: 32px;
+
+    box-shadow:
+        inset 0 0 0 1px #1e293b,
+        0 10px 30px rgba(0,0,0,0.35);
+}
+
+/* HEADER DO TERMINAL */
+.activities-terminal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+/* título estilo terminal */
+.activities-terminal-header .title {
+    color: #38bdf8;
+    font-size: 12px;
+}
+
+/* botão limpar */
+.activities-terminal-header button {
+    background: #020617;
+    border: 1px solid #334155;
+    color: #cbd5f5;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all .15s ease;
+}
+
+.activities-terminal-header button:hover {
+    background: #0f172a;
+    border-color: #38bdf8;
+    color: #38bdf8;
+}
+
+/* CORPO DO TERMINAL */
+.activities-terminal-body {
+    white-space: pre-wrap;
+    margin: 0;
+}
+
+/* cada bloco de log */
+.activities-terminal-body > div {
+    margin-bottom: 12px;
+}
+
+/* =========================
+   CORES POR AÇÃO
+========================= */
+
+.log-download { color: #22c55e; } /* verde */
+.log-preview  { color: #38bdf8; } /* azul */
+.log-search   { color: #eab308; } /* amarelo */
+.log-delete   { color: #ef4444; } /* vermelho */
+.log-default  { color: #e5e7eb; }
+
+/* texto quando vazio */
+.activities-terminal-body:empty::before {
+    content: "Nenhuma atividade registrada.";
+    color: #64748b;
+}
+

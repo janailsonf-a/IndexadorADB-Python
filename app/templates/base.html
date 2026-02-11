@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+
+    <!-- RESPONSIVO -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{{ title or "Indexador • Amigos do Bem" }}</title>
+
+    <!-- Bootstrap CSS -->
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        rel="stylesheet">
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+        rel="stylesheet">
+
+    <!-- CSS GLOBAL -->
+    <link rel="stylesheet" href="/static/style.css">
+
+    <link rel="icon" href="/static/img/favicon-16x16.png">
+</head>
+<body>
+
+<div class="app">
+
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="/static/img/Novo-LOGO-01.png" alt="Amigos do Bem">
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <a href="/"
+               class="{% if request.url.path in ['/', '/search'] %}active{% endif %}">
+                <i class="bi bi-search"></i>
+                <span>Buscar Arquivos</span>
+            </a>
+
+            <a href="/status"
+               class="{% if request.url.path == '/status' %}active{% endif %}">
+                <i class="bi bi-speedometer2"></i>
+                <span>Status Sistema</span>
+            </a>
+
+            <a href="/health"
+               class="{% if request.url.path == '/health' %}active{% endif %}">
+                <i class="bi bi-heart-pulse"></i>
+                <span>Healthcheck</span>
+            </a>
+
+        </nav>
+    </aside>
+
+    <!-- ================= CONTEÚDO ================= -->
+    <main class="content">
+        {% block content %}{% endblock %}
+    </main>
+
+</div>
+
+<!-- ================= MODAL DE PREVIEW ================= -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title" id="previewTitle"></h5>
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="modal">
+        </button>
+      </div>
+
+      <div class="modal-body text-center"
+           id="previewBody"
+           style="min-height:400px;">
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ================= TOAST ================= -->
+<div id="toast" class="toast">
+    Copiado
+</div>
+
+<!-- Bootstrap JS -->
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js">
+</script>
+
+<!-- ================= PREVIEW FILE ================= -->
+<script>
+function previewFile(url, ext, name) {
+    const modalEl = document.getElementById("previewModal");
+    const body = document.getElementById("previewBody");
+    const title = document.getElementById("previewTitle");
+
+    title.innerText = name;
+    body.innerHTML = "";
+
+    let cleanExt = (ext || "")
+        .toLowerCase()
+        .split("?")[0]
+        .replace(".", "")
+        .trim();
+
+    if (["jpg", "jpeg", "png", "webp", "gif", "svg"].includes(cleanExt)) {
+        body.innerHTML = `
+            <img src="${url}" alt="${name}"
+                 style="max-width:100%;max-height:75vh;border-radius:12px;">
+        `;
+    }
+    else if (["mp4", "webm"].includes(cleanExt)) {
+        body.innerHTML = `
+            <video src="${url}" controls
+                   style="width:100%;border-radius:12px;"></video>
+        `;
+    }
+    else if (cleanExt === "pdf") {
+        body.innerHTML = `
+            <iframe src="${url}"
+                    style="width:100%;height:75vh;border:none;">
+            </iframe>
+        `;
+    }
+    else if (["txt", "log", "json", "csv"].includes(cleanExt)) {
+        fetch(url)
+            .then(r => r.text())
+            .then(t => {
+                body.innerHTML = `
+                    <pre style="
+                        text-align:left;
+                        white-space:pre-wrap;
+                        background:#0f172a;
+                        color:#e5e7eb;
+                        padding:16px;
+                        border-radius:12px;
+                        max-height:70vh;
+                        overflow:auto;
+                    ">${t}</pre>
+                `;
+            });
+    }
+    else {
+        body.innerHTML = `
+            <div style="padding:40px">
+                <p>Pré-visualização não suportada.</p>
+                <a href="${url}" download class="btn btn-primary">
+                    Baixar arquivo
+                </a>
+            </div>
+        `;
+    }
+
+    new bootstrap.Modal(modalEl).show();
+}
+
+function copyPath(path){
+    if(!path) return;
+
+    navigator.clipboard.writeText(path)
+        .then(() => showToast("Caminho copiado para a área de transferência"))
+        .catch(() => alert("Não foi possível copiar o caminho"));
+}
+
+function showToast(text){
+    const toast = document.getElementById("toast");
+    toast.innerText = text;
+    toast.classList.add("show");
+
+    setTimeout(() => toast.classList.remove("show"), 2500);
+}
+</script>
+
+</body>
+</html>

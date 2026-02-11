@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- ================= BUSCA ================= -->
+<div class="search-bar">
+    <form method="post" action="/search" class="search-form">
+        <input
+            type="text"
+            name="query"
+            value="{{ last_query }}"
+            placeholder="Digite para buscar por nome ou caminho do arquivo…"
+        />
+
+        <select name="order">
+            <option value="recent" {% if meta.order == 'recent' %}selected{% endif %}>
+                Mais recentes
+            </option>
+            <option value="oldest" {% if meta.order == 'oldest' %}selected{% endif %}>
+                Mais antigos
+            </option>
+        </select>
+
+        <button type="submit" id="searchBtn">
+            <i class="bi bi-search"></i> Buscar
+        </button>
+    </form>
+
+    {% if meta.query_ms %}
+    <div class="search-meta">
+        {{ meta.total_matches }} resultados • {{ meta.query_ms }} ms
+    </div>
+    {% endif %}
+</div>
+
+<!-- ================= ESTADO INICIAL ================= -->
+{% if not last_query %}
+<div class="empty-state">
+    <i class="bi bi-folder2-open" style="font-size:2rem;"></i>
+    <p>Busque arquivos e pastas</p>
+</div>
+{% endif %}
+
+{% if last_query %}
+
+<!-- ================= BREADCRUMB ================= -->
+<div class="section">
+    <div class="breadcrumb-path">
+        <span class="breadcrumb-item">
+            <button type="button">Root</button>
+        </span>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-item">
+            {{ last_query }}
+        </span>
+    </div>
+</div>
+
+<!-- ================= RESULTADOS ================= -->
+<div class="section">
+
+    <h6>Resultados</h6>
+
+    {% if results|length == 0 %}
+    <div class="empty-state">
+        <i class="bi bi-search"></i>
+        <p>Nenhum resultado encontrado</p>
+        <small>Tente outro termo ou caminho.</small>
+    </div>
+    {% endif %}
+
+    <table class="results-table">
+        <thead>
+            <tr>
+                <th>Arquivo</th>
+                <th>Extensão</th>
+                <th>Tamanho</th>
+                <th>Modificado</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in results %}
+        <tr>
+            <td class="file-name" data-filename="{{ r.filename }}">
+                {{ r.filename }}
+            </td>
+            <td>
+                <span class="ext-badge">{{ r.ext }}</span>
+            </td>
+            <td>{{ r.size_mb }} MB</td>
+            <td>{{ r.modified_at }}</td>
+            <td class="actions">
+
+                <!-- VISUALIZAR (PASSA PELO BACKEND) -->
+                <button
+                    title="Visualizar"
+                    onclick="previewFile(
+                        '/preview?path={{ r.rel_path | urlencode }}',
+                        '{{ r.ext }}',
+                        '{{ r.filename }}'
+                    )"
+                >
+                    <i class="bi bi-eye"></i>
+                </button>
+
+                <!-- COPIAR CAMINHO -->
+                <button
+                    title="Copiar caminho"
+                    onclick="copyPath('{{ r.rel_path }}')"
+                >
+                    <i class="bi bi-clipboard"></i>
+                </button>
+
+                <!-- DOWNLOAD -->
+                <a
+                    href="/download?path={{ r.rel_path }}"
+                    title="Baixar arquivo"
+                >
+                    <i class="bi bi-download"></i>
+                </a>
+
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+<!-- ================= PAGINAÇÃO ================= -->
+{% if meta.total_pages > 1 %}
+<div class="pagination-wrapper">
+    {% for p in range(1, 6) %}
+        {% if p <= meta.total_pages %}
+        <form method="post" action="/search">
+            <input type="hidden" name="query" value="{{ last_query }}">
+            <input type="hidden" name="order" value="{{ meta.order }}">
+            <input type="hidden" name="page" value="{{ p }}">
+            <button class="page-btn {% if p == meta.page %}active{% endif %}">
+                {{ p }}
+            </button>
+        </form>
+        {% endif %}
+    {% endfor %}
+</div>
+
+<div class="pagination-info">
+    Página {{ meta.page }} de {{ meta.total_pages }}
+</div>
+{% endif %}
+
+{% endif %}
+
+<!-- ================= JS ================= -->
+<script>
+/* LOADING */
+const form = document.querySelector('.search-form');
+const btn = document.getElementById('searchBtn');
+
+if(form){
+    form.addEventListener('submit', () => {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Buscando...';
+    });
+}
+
+/* HIGHLIGHT */
+(function(){
+    const query = "{{ last_query | e }}".trim();
+    if(query.length < 2) return;
+
+    document.querySelectorAll('.file-name').forEach(cell => {
+        const text = cell.dataset.filename;
+        const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        cell.innerHTML = text.replace(
+            new RegExp(`(${safe})`, 'gi'),
+            '<mark>$1</mark>'
+        );
+    });
+})();
+</script>
+
+{% endblock %}
