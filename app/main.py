@@ -6,6 +6,7 @@ import time
 from math import ceil
 from datetime import datetime
 from typing import Any
+from urllib.parse import quote
 
 import psutil
 from fastapi import FastAPI, Request, Form, HTTPException
@@ -332,7 +333,6 @@ def save_daily_history():
 
     conn.close()
 
-
 @app.get("/api/history")
 def history():
     conn = connect(DB_PATH)
@@ -595,7 +595,7 @@ async def search(
         "size_mb": r["size_mb"],
         "created_at": r["created_at"],
         "modified_at": r["modified_at"],
-        "link": f"/arquivos/{r['rel_path']}",
+        "link": f"/arquivos/{quote(r['rel_path'])}",
     } for r in rows]
 
     return templates.TemplateResponse("index.html", {
@@ -676,7 +676,7 @@ def preview_file(path: str):
         rel_path=rel_norm
     )
 
-    return RedirectResponse(url=f"/arquivos/{rel_norm}")
+    return RedirectResponse(url=f"/arquivos/{quote(rel_norm)}")
 
 
 @app.get("/download")

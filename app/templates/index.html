@@ -113,7 +113,7 @@
 
                 <!-- DOWNLOAD -->
                 <a
-                    href="/download?path={{ r.rel_path }}"
+                   href="/download?path={{ r.rel_path | urlencode }}" download
                     title="Baixar arquivo"
                 >
                     <i class="bi bi-download"></i>

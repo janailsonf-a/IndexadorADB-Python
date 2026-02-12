@@ -23,13 +23,27 @@ ROOT_DIR = os.path.abspath(settings.root_dir)
 DB_PATH = settings.db_path
 
 IGNORE_DIRS: Set[str] = {
-    ".cache", ".local", ".Trash", ".venv",
-    "node_modules", "__pycache__", ".git",
-    "snap", "tmp", "Temp",
-    ".config", ".mozilla", ".thumbnails",
-    ".npm", ".cargo", ".steam",
+    # Sistema Linux
+    ".cache", ".local", ".Trash", ".config",
+    ".mozilla", ".thumbnails", ".gvfs",
     "proc", "sys", "dev", "run",
+    "lost+found",
+
+    # Windows
+    "$RECYCLE.BIN",
+    "System Volume Information",
+
+    # Mac
+    ".Spotlight-V100",
+    ".Trashes",
+    ".AppleDouble",
+
+    # Desenvolvimento
+    ".venv", "__pycache__", ".git",
+    "node_modules", "snap", "tmp", "Temp",
+    ".npm", ".cargo", ".steam",
 }
+
 
 TEMP_SUFFIXES = (".swp", ".tmp", ".part", ".crdownload", ".download", "~")
 
@@ -78,15 +92,35 @@ class SingleInstanceLock:
 def _should_ignore(rel_path: str) -> bool:
     base = os.path.basename(rel_path)
 
-    # nunca indexar o db sqlite (e wal/shm)
+    # Não indexar o bando de dados
     if base.startswith(os.path.basename(DB_PATH)):
         return True
 
+    # Arquivos temporários
     if base.endswith(TEMP_SUFFIXES):
+        return True
+
+    # Arquivos de sistema comuns
+    SYSTEM_FILES = {
+        "Thumbs.db",
+        "desktop.ini",
+        ".DS_Store",
+    }
+
+    if base in SYSTEM_FILES:
+        return True
+
+    # Arquivos ocultos tipo ._arquivo (Mac)
+    if base.startswith("._"):
+        return True
+
+    # Arquivos temporários Office (~$arquivo.docx)
+    if base.startswith("~$"):
         return True
 
     parts = rel_path.split(os.sep)
     return any(p in IGNORE_DIRS for p in parts)
+
 
 
 def _estimate_total_files() -> int:

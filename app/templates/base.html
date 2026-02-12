@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
 
-    <!-- RESPONSIVO -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>{{ title or "Indexador • Amigos do Bem" }}</title>
 
-    <!-- Bootstrap CSS -->
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
         rel="stylesheet">
@@ -17,16 +15,14 @@
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
         rel="stylesheet">
 
-    <!-- CSS GLOBAL -->
     <link rel="stylesheet" href="/static/style.css">
-
     <link rel="icon" href="/static/img/favicon-16x16.png">
 </head>
 <body>
 
 <div class="app">
 
-    <!-- ================= SIDEBAR ================= -->
+    <!-- SIDEBAR -->
     <aside class="sidebar">
         <div class="sidebar-logo">
             <img src="/static/img/Novo-LOGO-01.png" alt="Amigos do Bem">
@@ -55,14 +51,14 @@
         </nav>
     </aside>
 
-    <!-- ================= CONTEÚDO ================= -->
+    <!-- CONTEÚDO -->
     <main class="content">
         {% block content %}{% endblock %}
     </main>
 
 </div>
 
-<!-- ================= MODAL DE PREVIEW ================= -->
+<!-- MODAL PREVIEW -->
 <div class="modal fade" id="previewModal" tabindex="-1">
   <div class="modal-dialog modal-xl modal-dialog-centered">
     <div class="modal-content">
@@ -84,24 +80,20 @@
   </div>
 </div>
 
-<!-- ================= TOAST ================= -->
+<!-- TOAST -->
 <div id="toast" class="toast">
     Copiado
 </div>
 
-<!-- Bootstrap JS -->
-<script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js">
-</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- ================= PREVIEW FILE ================= -->
 <script>
 function previewFile(url, ext, name) {
     const modalEl = document.getElementById("previewModal");
     const body = document.getElementById("previewBody");
     const title = document.getElementById("previewTitle");
 
-    title.innerText = name;
+    title.textContent = name;
     body.innerHTML = "";
 
     let cleanExt = (ext || "")
@@ -110,57 +102,89 @@ function previewFile(url, ext, name) {
         .replace(".", "")
         .trim();
 
+    /* IMAGEM */
     if (["jpg", "jpeg", "png", "webp", "gif", "svg"].includes(cleanExt)) {
-        body.innerHTML = `
-            <img src="${url}" alt="${name}"
-                 style="max-width:100%;max-height:75vh;border-radius:12px;">
-        `;
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = name;
+        img.style.maxWidth = "100%";
+        img.style.maxHeight = "75vh";
+        img.style.borderRadius = "12px";
+        body.appendChild(img);
     }
+
+    /* VÍDEO */
     else if (["mp4", "webm"].includes(cleanExt)) {
-        body.innerHTML = `
-            <video src="${url}" controls
-                   style="width:100%;border-radius:12px;"></video>
-        `;
+        const video = document.createElement("video");
+        video.src = url;
+        video.controls = true;
+        video.style.width = "100%";
+        video.style.borderRadius = "12px";
+        body.appendChild(video);
     }
+
+    /* PDF */
     else if (cleanExt === "pdf") {
-        body.innerHTML = `
-            <iframe src="${url}"
-                    style="width:100%;height:75vh;border:none;">
-            </iframe>
-        `;
+        const iframe = document.createElement("iframe");
+        iframe.src = url;
+        iframe.style.width = "100%";
+        iframe.style.height = "75vh";
+        iframe.style.border = "none";
+        body.appendChild(iframe);
     }
+
+    /* TEXTO SEGURO */
     else if (["txt", "log", "json", "csv"].includes(cleanExt)) {
+
         fetch(url)
-            .then(r => r.text())
-            .then(t => {
-                body.innerHTML = `
-                    <pre style="
-                        text-align:left;
-                        white-space:pre-wrap;
-                        background:#0f172a;
-                        color:#e5e7eb;
-                        padding:16px;
-                        border-radius:12px;
-                        max-height:70vh;
-                        overflow:auto;
-                    ">${t}</pre>
-                `;
+            .then(r => {
+                if (!r.ok) throw new Error("Erro ao carregar");
+                return r.text();
+            })
+            .then(text => {
+
+                const pre = document.createElement("pre");
+                pre.textContent = text; // 🔐 SEGURO CONTRA XSS
+
+                pre.style.textAlign = "left";
+                pre.style.whiteSpace = "pre-wrap";
+                pre.style.background = "#0f172a";
+                pre.style.color = "#e5e7eb";
+                pre.style.padding = "16px";
+                pre.style.borderRadius = "12px";
+                pre.style.maxHeight = "70vh";
+                pre.style.overflow = "auto";
+
+                body.appendChild(pre);
+            })
+            .catch(() => {
+                body.innerHTML = "<p>Erro ao carregar o arquivo.</p>";
             });
     }
+
+    /* NÃO SUPORTADO */
     else {
-        body.innerHTML = `
-            <div style="padding:40px">
-                <p>Pré-visualização não suportada.</p>
-                <a href="${url}" download class="btn btn-primary">
-                    Baixar arquivo
-                </a>
-            </div>
-        `;
+        const container = document.createElement("div");
+        container.style.padding = "40px";
+
+        const p = document.createElement("p");
+        p.textContent = "Pré-visualização não suportada.";
+
+        const btn = document.createElement("a");
+        btn.href = url;
+        btn.download = name;
+        btn.className = "btn btn-primary";
+        btn.textContent = "Baixar arquivo";
+
+        container.appendChild(p);
+        container.appendChild(btn);
+        body.appendChild(container);
     }
 
     new bootstrap.Modal(modalEl).show();
 }
 
+/* COPIAR CAMINHO */
 function copyPath(path){
     if(!path) return;
 
@@ -169,6 +193,7 @@ function copyPath(path){
         .catch(() => alert("Não foi possível copiar o caminho"));
 }
 
+/* TOAST */
 function showToast(text){
     const toast = document.getElementById("toast");
     toast.innerText = text;
