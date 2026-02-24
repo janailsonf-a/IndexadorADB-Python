@@ -5,20 +5,72 @@
 <div class="search-bar">
     <form method="post" action="/search" class="search-form">
         <input
-            type="text"
-            name="query"
-            value="{{ last_query }}"
-            placeholder="Digite para buscar por nome ou caminho do arquivo…"
+                type="text"
+                name="query"
+                value="{{ last_query }}"
+                placeholder="Digite para buscar por nome ou caminho do arquivo…"
         />
 
-        <select name="order">
-            <option value="recent" {% if meta.order == 'recent' %}selected{% endif %}>
-                Mais recentes
-            </option>
-            <option value="oldest" {% if meta.order == 'oldest' %}selected{% endif %}>
-                Mais antigos
-            </option>
-        </select>
+        <div class="dropdown custom-sort">
+            <button class="btn-sort" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-view-stacked"></i>
+                <i class="bi bi-chevron-down"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                <li class="dropdown-header">ORDENAR POR</li>
+
+                <li>
+                    <a class="sort-item {% if meta.order == 'name_asc' %}active{% endif %}" href="javascript:void(0)"
+                       onclick="submitSort('name_asc')">
+                        Nome (A-Z) {% if meta.order == 'name_asc' %}<i class="bi bi-check2 ms-auto"></i>{% endif %}
+                    </a>
+                </li>
+                <li>
+                    <a class="sort-item {% if meta.order == 'name_desc' %}active{% endif %}" href="javascript:void(0)"
+                       onclick="submitSort('name_desc')">
+                        Nome (Z-A) {% if meta.order == 'name_desc' %}<i class="bi bi-check2 ms-auto"></i>{% endif %}
+                    </a>
+                </li>
+
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+
+                <li>
+                    <a class="sort-item {% if meta.order == 'recent' %}active{% endif %}" href="javascript:void(0)"
+                       onclick="submitSort('recent')">
+                        Última modificação {% if meta.order == 'recent' %}<i class="bi bi-check2 ms-auto"></i>{% endif
+                        %}
+                    </a>
+                </li>
+                <li>
+                    <a class="sort-item {% if meta.order == 'oldest' %}active{% endif %}" href="javascript:void(0)"
+                       onclick="submitSort('oldest')">
+                        Primeira modificação {% if meta.order == 'oldest' %}<i class="bi bi-check2 ms-auto"></i>{% endif
+                        %}
+                    </a>
+                </li>
+
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+
+                <li>
+                    <a class="sort-item {% if meta.order == 'size_desc' %}active{% endif %}" href="javascript:void(0)"
+                       onclick="submitSort('size_desc')">
+                        Tamanho {% if meta.order == 'size_desc' %}<i class="bi bi-check2 ms-auto"></i>{% endif %}
+                    </a>
+                </li>
+                <li>
+                    <a class="sort-item {% if meta.order == 'type' %}active{% endif %}" href="javascript:void(0)"
+                       onclick="submitSort('type')">
+                        Tipo {% if meta.order == 'type' %}<i class="bi bi-check2 ms-auto"></i>{% endif %}
+                    </a>
+                </li>
+            </ul>
+
+            <input type="hidden" name="order" id="orderInput" value="{{ meta.order }}">
+        </div>
 
         <button type="submit" id="searchBtn">
             <i class="bi bi-search"></i> Buscar
@@ -70,13 +122,13 @@
 
     <table class="results-table">
         <thead>
-            <tr>
-                <th>Arquivo</th>
-                <th>Extensão</th>
-                <th>Tamanho</th>
-                <th>Modificado</th>
-                <th>Ações</th>
-            </tr>
+        <tr>
+            <th>Arquivo</th>
+            <th>Extensão</th>
+            <th>Tamanho</th>
+            <th>Modificado</th>
+            <th>Ações</th>
+        </tr>
         </thead>
         <tbody>
         {% for r in results %}
@@ -93,8 +145,8 @@
 
                 <!-- VISUALIZAR (PASSA PELO BACKEND) -->
                 <button
-                    title="Visualizar"
-                    onclick="previewFile(
+                        title="Visualizar"
+                        onclick="previewFile(
                         '/preview?path={{ r.rel_path | urlencode }}',
                         '{{ r.ext }}',
                         '{{ r.filename }}'
@@ -105,16 +157,16 @@
 
                 <!-- COPIAR CAMINHO -->
                 <button
-                    title="Copiar caminho"
-                    onclick="copyPath('{{ r.rel_path }}')"
+                        title="Copiar caminho"
+                        onclick="copyPath('{{ r.rel_path }}')"
                 >
                     <i class="bi bi-clipboard"></i>
                 </button>
 
                 <!-- DOWNLOAD -->
                 <a
-                   href="/download?path={{ r.rel_path | urlencode }}" download
-                    title="Baixar arquivo"
+                        href="/download?path={{ r.rel_path | urlencode }}" download
+                        title="Baixar arquivo"
                 >
                     <i class="bi bi-download"></i>
                 </a>
@@ -129,23 +181,50 @@
 
 <!-- ================= PAGINAÇÃO ================= -->
 {% if meta.total_pages > 1 %}
-<div class="pagination-wrapper">
-    {% for p in range(1, 6) %}
-        {% if p <= meta.total_pages %}
-        <form method="post" action="/search">
+<div class="pagination-container"
+     style="margin-top: 30px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+
+    <div class="pagination-wrapper" style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
+
+        {# Botão para a Primeira Página (opcional) #}
+        {% if meta.page > 3 %}
+        <form method="post" action="/search" style="display: inline;">
+            <input type="hidden" name="query" value="{{ last_query }}">
+            <input type="hidden" name="order" value="{{ meta.order }}">
+            <input type="hidden" name="page" value="1">
+            <button type="submit" class="page-btn">1</button>
+        </form>
+        <span style="align-self: flex-end; padding-bottom: 5px;">...</span>
+        {% endif %}
+
+        {# Loop pelas páginas inteligentes geradas no Python #}
+        {% for p in meta.pages_to_show %}
+        <form method="post" action="/search" style="display: inline;">
             <input type="hidden" name="query" value="{{ last_query }}">
             <input type="hidden" name="order" value="{{ meta.order }}">
             <input type="hidden" name="page" value="{{ p }}">
-            <button class="page-btn {% if p == meta.page %}active{% endif %}">
+            <button type="submit" class="page-btn {% if p == meta.page %}active{% endif %}">
                 {{ p }}
             </button>
         </form>
-        {% endif %}
-    {% endfor %}
-</div>
+        {% endfor %}
 
-<div class="pagination-info">
-    Página {{ meta.page }} de {{ meta.total_pages }}
+        {# Botão para a Última Página (opcional) #}
+        {% if meta.total_pages > (meta.pages_to_show[-1] if meta.pages_to_show else 0) %}
+        <span style="align-self: flex-end; padding-bottom: 5px;">...</span>
+        <form method="post" action="/search" style="display: inline;">
+            <input type="hidden" name="query" value="{{ last_query }}">
+            <input type="hidden" name="order" value="{{ meta.order }}">
+            <input type="hidden" name="page" value="{{ meta.total_pages }}">
+            <button type="submit" class="page-btn">{{ meta.total_pages }}</button>
+        </form>
+        {% endif %}
+    </div>
+
+    <div class="pagination-info" style="font-size: 0.85rem; color: #666;">
+        A mostrar página <strong>{{ meta.page }}</strong> de <strong>{{ meta.total_pages }}</strong>
+        ({{ meta.total_matches }} resultados encontrados)
+    </div>
 </div>
 {% endif %}
 
@@ -153,31 +232,43 @@
 
 <!-- ================= JS ================= -->
 <script>
-/* LOADING */
-const form = document.querySelector('.search-form');
-const btn = document.getElementById('searchBtn');
+    /* LOADING */
+    const form = document.querySelector('.search-form');
+    const btn = document.getElementById('searchBtn');
 
-if(form){
-    form.addEventListener('submit', () => {
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> Buscando...';
-    });
-}
+    if (form) {
+        form.addEventListener('submit', () => {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Buscando...';
+        });
+    }
 
-/* HIGHLIGHT */
-(function(){
-    const query = "{{ last_query | e }}".trim();
-    if(query.length < 2) return;
+    /* HIGHLIGHT */
+    (function () {
+        const query = "{{ last_query | e }}".trim();
+        if (query.length < 2) return;
 
-    document.querySelectorAll('.file-name').forEach(cell => {
-        const text = cell.dataset.filename;
-        const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        cell.innerHTML = text.replace(
-            new RegExp(`(${safe})`, 'gi'),
-            '<mark>$1</mark>'
-        );
-    });
-})();
+        document.querySelectorAll('.file-name').forEach(cell => {
+            const text = cell.dataset.filename;
+            const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            cell.innerHTML = text.replace(
+                new RegExp(`(${safe})`, 'gi'),
+                '<mark>$1</mark>'
+            );
+        });
+    })();
+
+    function submitSort(value) {
+        const input = document.getElementById('orderInput');
+        if (input) {
+            input.value = value;
+        }
+
+        const form = document.querySelector('.search-form');
+        if (form) {
+            form.submit();
+        }
+    }
 </script>
 
 {% endblock %}

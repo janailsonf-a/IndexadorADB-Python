@@ -32,20 +32,23 @@ def index_file(full_path, rel_path):
         stat = os.stat(full_path)
         conn = db_connect()
 
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO files_meta (rel_path, filename, ext, size_bytes, modified_at, created_at)
             VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(rel_path) DO UPDATE SET
                 size_bytes=excluded.size_bytes,
                 modified_at=excluded.modified_at
-        """, (
-            rel_path,
-            os.path.basename(rel_path),
-            os.path.splitext(rel_path)[1].lower(),
-            stat.st_size,
-            int(stat.st_mtime),
-            int(stat.st_ctime),
-        ))
+        """,
+            (
+                rel_path,
+                os.path.basename(rel_path),
+                os.path.splitext(rel_path)[1].lower(),
+                stat.st_size,
+                int(stat.st_mtime),
+                int(stat.st_ctime),
+            ),
+        )
 
         conn.commit()
         conn.close()

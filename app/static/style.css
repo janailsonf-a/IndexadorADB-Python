@@ -363,18 +363,31 @@ body{
     margin-top:24px;
 }
 
-.page-btn{
-    background:#fff;
-    border:1px solid #e5e7eb;
-    border-radius:8px;
-    padding:6px 10px;
-    font-size:.8rem;
-    color:var(--adb-blue);
+.page-btn {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px 14px;      /* Aumentei um pouco o clique */
+    font-size: .85rem;
+    color: var(--adb-blue);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;        /* Garante que botões pequenos não fiquem deformados */
 }
 
-.page-btn.active{
-    background:var(--adb-blue);
-    color:#fff;
+.page-btn:hover {
+    border-color: var(--adb-blue);
+    background-color: #f0f7ff;
+}
+
+.page-btn.active {
+    background: var(--adb-blue);
+    color: #fff;
+    border-color: var(--adb-blue);
+    font-weight: 600;
 }
 
 /* =========================
@@ -567,3 +580,124 @@ mark{
     color: #64748b;
 }
 
+
+.toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--text-dark);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 50px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    display: none;
+    z-index: 9999;
+    font-size: 0.9rem;
+    border-left: 4px solid var(--adb-orange);
+}
+
+.toast.show {
+    display: block;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+
+/* =================================================
+   BOTÃO DE ORDENAÇÃO (ESTILO LINUX)
+   ================================================= */
+.custom-sort {
+    flex-shrink: 0; /* IMPEDE O BOTÃO DE ENCOLHER */
+}
+
+.btn-sort {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    color: #4b5563;
+    border-radius: 8px;
+    height: 42px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-sort:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    color: #111827;
+}
+
+.btn-sort i.bi-chevron-down {
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+
+/* =================================================
+   MENU DROPDOWN (LIMPEZA TOTAL)
+   ================================================= */
+.dropdown-menu {
+    border: none !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+    border-radius: 12px !important;
+    padding: 6px !important;
+    min-width: 220px !important;
+    margin-top: 8px !important;
+}
+
+.dropdown-header {
+    font-weight: 700 !important;
+    font-size: 0.65rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9ca3af !important;
+    padding: 10px 16px 6px 16px !important;
+}
+
+/* RESET DOS ITENS (Remove o alaranjado e bordas) */
+.sort-item {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between; /* Checkmark na direita */
+    width: 100%;
+    padding: 10px 16px;
+    color: #374151 !important;
+    text-decoration: none !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-size: 0.9rem;
+    transition: background 0.15s ease;
+}
+
+/* Hover Suave (Estilo GNOME) */
+.sort-item:hover {
+    background-color: #f3f4f6 !important;
+    color: #111827 !important;
+}
+
+/* Item Ativo (Destaque Azul Suave) */
+.sort-item.active {
+    background-color: #eff6ff !important;
+    color: #2563eb !important;
+    font-weight: 600;
+}
+
+/* Ícone de Checkmark */
+.sort-item i.bi-check2 {
+    font-size: 1.1rem;
+    color: #2563eb;
+    font-weight: bold;
+}
+
+.dropdown-divider {
+    margin: 6px 0 !important;
+    border-top: 1px solid #f1f5f9 !important;
+}

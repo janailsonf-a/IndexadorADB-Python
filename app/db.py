@@ -47,10 +47,18 @@ def ensure_files_schema(conn: sqlite3.Connection) -> None:
         );
     """)
 
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_files_meta_rel_path ON files_meta(rel_path);")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_files_meta_filename ON files_meta(filename);")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_files_meta_last_seen ON files_meta(last_seen_run);")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_files_meta_mtime_ns ON files_meta(mtime_ns);")
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_files_meta_rel_path ON files_meta(rel_path);"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_files_meta_filename ON files_meta(filename);"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_files_meta_last_seen ON files_meta(last_seen_run);"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_files_meta_mtime_ns ON files_meta(mtime_ns);"
+    )
 
     # FTS5 sincronizado com content=files_meta
     cur.execute("""
@@ -121,8 +129,11 @@ def ensure_indexer_status_table(conn: sqlite3.Connection) -> None:
 
 
 def set_meta(conn: sqlite3.Connection, key: str, value: str) -> None:
-    conn.execute("INSERT INTO meta(key, value) VALUES(?, ?) "
-                 "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (key, str(value)))
+    conn.execute(
+        "INSERT INTO meta(key, value) VALUES(?, ?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (key, str(value)),
+    )
     conn.commit()
 
 

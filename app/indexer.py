@@ -24,24 +24,36 @@ DB_PATH = settings.db_path
 
 IGNORE_DIRS: Set[str] = {
     # Sistema Linux
-    ".cache", ".local", ".Trash", ".config",
-    ".mozilla", ".thumbnails", ".gvfs",
-    "proc", "sys", "dev", "run",
+    ".cache",
+    ".local",
+    ".Trash",
+    ".config",
+    ".mozilla",
+    ".thumbnails",
+    ".gvfs",
+    "proc",
+    "sys",
+    "dev",
+    "run",
     "lost+found",
-
     # Windows
     "$RECYCLE.BIN",
     "System Volume Information",
-
     # Mac
     ".Spotlight-V100",
     ".Trashes",
     ".AppleDouble",
-
     # Desenvolvimento
-    ".venv", "__pycache__", ".git",
-    "node_modules", "snap", "tmp", "Temp",
-    ".npm", ".cargo", ".steam",
+    ".venv",
+    "__pycache__",
+    ".git",
+    "node_modules",
+    "snap",
+    "tmp",
+    "Temp",
+    ".npm",
+    ".cargo",
+    ".steam",
 }
 
 
@@ -54,7 +66,6 @@ BATCH_SIZE = 3000
 def _ext(filename: str) -> str:
     ext = os.path.splitext(filename)[1].lower().lstrip(".")
     return ext if ext else "sem_ext"
-
 
 
 def _fmt_dt(ts: float) -> str:
@@ -122,7 +133,6 @@ def _should_ignore(rel_path: str) -> bool:
     return any(p in IGNORE_DIRS for p in parts)
 
 
-
 def _estimate_total_files() -> int:
     total = 0
     for root, dirs, files in os.walk(ROOT_DIR):
@@ -170,7 +180,8 @@ def index_files() -> None:
         t0 = time.time()
 
         # inicializa status para interface
-        cur.execute("""
+        cur.execute(
+            """
             UPDATE indexer_status
                SET processed=0,
                    total=?,
@@ -178,7 +189,9 @@ def index_files() -> None:
                    last_run=?,
                    last_error=NULL
              WHERE id=1
-        """, (total_est, t0, run_id))
+        """,
+            (total_est, t0, run_id),
+        )
         conn.commit()
 
         to_touch: List[Tuple[int, int]] = []
@@ -192,15 +205,19 @@ def index_files() -> None:
             nonlocal to_touch, to_update, to_insert, last_status_write
 
             if to_insert:
-                cur.executemany("""
+                cur.executemany(
+                    """
                     INSERT INTO files_meta
                     (filename, rel_path, ext, size_bytes, created_at, modified_at, path_hash, mtime_ns, last_seen_run)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, to_insert)
+                """,
+                    to_insert,
+                )
                 to_insert = []
 
             if to_update:
-                cur.executemany("""
+                cur.executemany(
+                    """
                     UPDATE files_meta SET
                         filename=?,
                         ext=?,
@@ -210,21 +227,28 @@ def index_files() -> None:
                         mtime_ns=?,
                         last_seen_run=?
                     WHERE rel_path=?
-                """, to_update)
+                """,
+                    to_update,
+                )
                 to_update = []
 
             if to_touch:
-                cur.executemany("UPDATE files_meta SET last_seen_run=? WHERE id=?", to_touch)
+                cur.executemany(
+                    "UPDATE files_meta SET last_seen_run=? WHERE id=?", to_touch
+                )
                 to_touch = []
 
             # atualiza status (não a cada arquivo, só no flush)
-            cur.execute("""
+            cur.execute(
+                """
                 UPDATE indexer_status
                    SET processed=?,
                        total=?,
                        start_time=?
                  WHERE id=1
-            """, (scanned, total_est, t0))
+            """,
+                (scanned, total_est, t0),
+            )
 
             conn.commit()
             last_status_write = time.time()
@@ -263,19 +287,34 @@ def index_files() -> None:
                         to_touch.append((run_id, _id))
                     else:
                         stats.updated += 1
-                        to_update.append((
-                            filename, ext, size_bytes,
-                            modified_at, created_at,
-                            mtime_ns, run_id, rel_path
-                        ))
+                        to_update.append(
+                            (
+                                filename,
+                                ext,
+                                size_bytes,
+                                modified_at,
+                                created_at,
+                                mtime_ns,
+                                run_id,
+                                rel_path,
+                            )
+                        )
                         existing[rel_path] = (_id, mtime_ns)
                 else:
                     stats.new += 1
-                    to_insert.append((
-                        filename, rel_path, ext, size_bytes,
-                        created_at, modified_at,
-                        path_hash(rel_path), mtime_ns, run_id
-                    ))
+                    to_insert.append(
+                        (
+                            filename,
+                            rel_path,
+                            ext,
+                            size_bytes,
+                            created_at,
+                            modified_at,
+                            path_hash(rel_path),
+                            mtime_ns,
+                            run_id,
+                        )
+                    )
 
                 if (len(to_touch) + len(to_update) + len(to_insert)) >= BATCH_SIZE:
                     flush()
@@ -284,10 +323,12 @@ def index_files() -> None:
                     elapsed = max(0.001, time.time() - t0)
                     speed = scanned / elapsed
                     pct = (scanned / total_est) * 100
-                    print((
-                        f" Progress: {pct:5.1f}% | {scanned:7,d} scanned | "
-                        f"{speed:7.0f} files/sec | +{stats.new} new, ~{stats.updated} upd"
-                    ).replace(",", "."))
+                    print(
+                        (
+                            f" Progress: {pct:5.1f}% | {scanned:7,d} scanned | "
+                            f"{speed:7.0f} files/sec | +{stats.new} new, ~{stats.updated} upd"
+                        ).replace(",", ".")
+                    )
 
                 # segurança: se ficar muito tempo sem flush (muito arquivo "unchanged"), ainda atualiza status
                 if (time.time() - last_status_write) > 2.5:
@@ -302,7 +343,8 @@ def index_files() -> None:
 
         duration = time.time() - t0
 
-        cur.execute("""
+        cur.execute(
+            """
             UPDATE indexer_status
                SET processed=?,
                    total=?,
@@ -313,11 +355,17 @@ def index_files() -> None:
                    last_deleted=?,
                    last_error=NULL
              WHERE id=1
-        """, (
-            scanned, total_est,
-            time.time(), duration,
-            stats.new, stats.updated, stats.deleted
-        ))
+        """,
+            (
+                scanned,
+                total_est,
+                time.time(),
+                duration,
+                stats.new,
+                stats.updated,
+                stats.deleted,
+            ),
+        )
         conn.commit()
 
         print("\n" + "─" * 48)
