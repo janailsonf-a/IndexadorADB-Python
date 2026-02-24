@@ -568,9 +568,11 @@ async def search(
         "name_desc": "m.filename COLLATE NOCASE DESC",
         "recent": "m.modified_at DESC",
         "oldest": "m.modified_at ASC",
-        "size_desc": "m.size_bytes DESC",
+        "size_desc": "m.size_bytes DESC, m.filename ASC",  # Adicionado critério de desempate
         "type": "m.ext ASC, m.filename ASC"
     }
+
+    # Pegamos o valor com fallback seguro
     order_sql = order_map.get(order, "m.modified_at DESC")
     offset = (page - 1) * page_size
     t0 = time.perf_counter()
@@ -643,15 +645,23 @@ async def search(
     finally:
         conn.close()
 
-    # --- CÁLCULO DA PAGINAÇÃO DINÂMICA (Integrado e Seguro) ---
-    query_ms = int((time.perf_counter() - t0) * 1000)
-
-    # Calcula total de páginas real
+    # --- CÁLCULO DA PAGINAÇÃO DINÂMICA ---
     total_pages = ceil(total_matches / page_size) if total_matches > 0 else 0
+    page = max(1, min(page, total_pages)) if total_pages > 0 else 1
 
-    # Gera a janela de páginas (Ex: se está na 10, mostra 8, 9, 10, 11, 12)
-    start_page = max(1, page - 2)
-    end_page = min(total_pages, page + 2)
+    # Define quantos botões mostrar ao redor da página atual
+    window = 2
+    start_page = max(1, page - window)
+    end_page = min(total_pages, page + window)
+
+    # Se estiver no início, garante que mostra pelo menos até a página 5
+    if page <= 3:
+        end_page = min(total_pages, 5)
+
+    # Se estiver no fim, garante que mostra as últimas 5
+    if page > total_pages - 3:
+        start_page = max(1, total_pages - 4)
+
     pages_to_show = list(range(start_page, end_page + 1))
 
     results = [

@@ -258,17 +258,19 @@
         });
     })();
 
-    function submitSort(value) {
-        const input = document.getElementById('orderInput');
-        if (input) {
-            input.value = value;
-        }
+function submitSort(value) {
+    // Atualiza o valor que vai para o Python
+    const orderInput = document.getElementById('orderInput');
+    if (orderInput) {
+        orderInput.value = value;
 
+        // Encontra o formulário e envia
         const form = document.querySelector('.search-form');
         if (form) {
             form.submit();
         }
     }
+}
 </script>
 
 {% endblock %}
