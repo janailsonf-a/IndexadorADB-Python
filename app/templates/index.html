@@ -157,8 +157,9 @@
 
                 <!-- COPIAR CAMINHO -->
                 <button
-                        title="Copiar caminho"
-                        onclick="copyPath('{{ r.rel_path }}')"
+                    title="Copiar caminho"
+                    data-path="{{ r.network_path }}"
+                    onclick="copyPath(this.dataset.path)"
                 >
                     <i class="bi bi-clipboard"></i>
                 </button>

@@ -7,10 +7,10 @@ ROOT_DIR = "/mnt/share"
 LOG_FILE = "/opt/indexador/scripts/sanitize_log.txt"
 
 INVALID_PATTERNS = [
-    r'^#',
-    r'^~\$',
-    r'^\._',
-    r'\s+$',
+    r"^#",
+    r"^~\$",
+    r"^\._",
+    r"\s+$",
 ]
 
 REPLACE_MAP = {

@@ -13,5 +13,8 @@ class Settings:
     port: int = int(os.getenv("PORT", "9001"))
     max_results: int = int(os.getenv("MAX_RESULTS", "50"))
 
+    public_smb_windows: str = os.getenv("PUBLIC_SMB_WINDOWS", "")
+    public_smb_mac: str = os.getenv("PUBLIC_SMB_MAC", "")
+
 
 settings = Settings()

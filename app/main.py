@@ -7,6 +7,10 @@ from math import ceil
 from datetime import datetime
 from typing import Any
 from urllib.parse import quote
+from app.path_converter import PathConverter, detectar_sistema
+from app.config import settings
+
+converter = PathConverter()
 
 import psutil
 from fastapi import FastAPI, Request, Form, HTTPException
@@ -664,18 +668,31 @@ async def search(
 
     pages_to_show = list(range(start_page, end_page + 1))
 
-    results = [
-        {
+    # Detecta sistema do usuário
+    sistema = detectar_sistema(request.headers.get("user-agent", ""))
+
+    results = []
+
+    for r in rows:
+        caminho_linux = os.path.join(settings.root_dir, r["rel_path"])
+
+        caminho_publico = converter.gerar_caminho_publico(
+            caminho_linux,
+            sistema
+        )
+
+        results.append({
             "filename": r["filename"],
             "rel_path": r["rel_path"],
             "ext": r["ext"] or "",
             "size_mb": r["size_mb"],
             "created_at": r["created_at"],
             "modified_at": r["modified_at"],
-            "link": f"/arquivos/{quote(r['rel_path'])}",
-        }
-        for r in rows
-    ]
+            "preview_link": f"/arquivos/{quote(r['rel_path'])}",
+            "network_path": caminho_publico,
+        })
+
+    query_ms = round((time.perf_counter() - t0) * 1000, 2)
 
     return templates.TemplateResponse(
         "index.html",
