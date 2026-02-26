@@ -124,6 +124,7 @@
         <thead>
         <tr>
             <th>Arquivo</th>
+            <th>Caminho</th>
             <th>Extensão</th>
             <th>Tamanho</th>
             <th>Modificado</th>
@@ -135,6 +136,9 @@
         <tr>
             <td class="file-name" data-filename="{{ r.filename }}">
                 {{ r.filename }}
+            </td>
+            <td class="file-path" title="{{ r.network_path }}">
+                {{ r.network_path }}
             </td>
             <td>
                 <span class="ext-badge">{{ r.ext }}</span>
@@ -153,15 +157,6 @@
                     )"
                 >
                     <i class="bi bi-eye"></i>
-                </button>
-
-                <!-- COPIAR CAMINHO -->
-                <button
-                    title="Copiar caminho"
-                    data-path="{{ r.network_path }}"
-                    onclick="copyPath(this.dataset.path)"
-                >
-                    <i class="bi bi-clipboard"></i>
                 </button>
 
                 <!-- DOWNLOAD -->

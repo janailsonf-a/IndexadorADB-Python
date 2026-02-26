@@ -180,33 +180,6 @@
         }, {once: true});
     }
 
-    /* COPIAR CAMINHO */
-    function copyPath(path) {
-        if (!path) return;
-
-        // Tenta o método moderno primeiro
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(path)
-                .then(() => showToast("Caminho copiado!"))
-                .catch(() => fallbackCopy(path));
-        } else {
-            fallbackCopy(path);
-        }
-    }
-
-    function fallbackCopy(text) {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            showToast("Caminho copiado (modo fallback)!");
-        } catch (err) {
-            alert("Não foi possível copiar o caminho.");
-        }
-        document.body.removeChild(textArea);
-    }
 
     /* TOAST */
     function showToast(text) {
