@@ -1,192 +1,70 @@
-🔎 Enterprise File Indexer
-Sistema Corporativo de Indexação e Busca de Arquivos
-<p align="left"> <img src="https://img.shields.io/badge/Python-3.12-blue?logo=python" /> <img src="https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi" /> <img src="https://img.shields.io/badge/SQLite-FTS5-003B57?logo=sqlite" /> <img src="https://img.shields.io/badge/Status-Production%20Ready-brightgreen" /> <img src="https://img.shields.io/badge/License-Private-red" /> </p>
-📌 Sobre o Projeto
+# 🔎 Indexador
 
-O Enterprise File Indexer é um sistema corporativo de indexação de arquivos projetado para ambientes com milhões de arquivos.
+Sistema corporativo de indexação e busca de arquivos para ambientes com milhões de arquivos.
 
-Ele:
+<p align="left">
+  <img src="https://img.shields.io/badge/Python-3.12-blue?logo=python" />
+  <img src="https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi" />
+  <img src="https://img.shields.io/badge/SQLite-FTS5-003B57?logo=sqlite" />
+  <img src="https://img.shields.io/badge/Status-Production%20Ready-brightgreen" />
+</p>
 
-🔎 Permite busca rápida por nome, caminho ou extensão
+---
 
-📂 Indexa metadados (não armazena arquivos)
+## 📌 Sobre o Projeto
 
-⚡ Utiliza FTS5 para busca performática
+O Indexador é um sistema desenvolvido para realizar indexação e busca eficiente de arquivos em ambientes corporativos com grande volume de dados.
 
-📊 Fornece monitoramento de CPU, RAM e disco
+O sistema armazena apenas **metadados**, garantindo baixo custo operacional e alta performance.
 
-🧾 Registra histórico de atividades
+---
 
-🛡️ Possui proteção contra path traversal
+## ⚙️ Funcionalidades
 
-O sistema foi projetado para ser escalável, seguro e reindexável.
+- Busca rápida por nome, caminho ou extensão  
+- Indexação apenas de metadados  
+- Utilização de SQLite com FTS5  
+- Monitoramento do status de indexação  
+- Proteção contra path traversal  
+- Reindexação segura  
 
-🏗 Arquitetura
+---
 
-O projeto é dividido em dois módulos principais:
+## 🏗 Arquitetura
 
-├── app/
-│   ├── main.py          → API FastAPI + Interface Web
-│   ├── indexer.py       → Processo de indexação CLI
-│   ├── db.py            → Schema e helpers do banco
-│   ├── templates/       → Interface HTML (Jinja2)
-│   └── static/          → CSS e assets
-│
-└── file_index.db        → Banco SQLite (metadados)
+app/
+├── main.py # API + Interface Web
+├── indexer.py # Processo de indexação (CLI)
+├── db.py # Schema e helpers do banco
+├── templates/ # Interface HTML
+└── static/ # Arquivos estáticos
 
-🔄 Fluxo de Funcionamento
+file_index.db # Banco SQLite (metadados)
 
-O indexador percorre o filesystem
+---
 
-Metadados são salvos no SQLite
+## 🚀 Instalação
 
-Interface web consulta:
-
-FTS (Full Text Search)
-
-Fallback LIKE
-
-Atividades são registradas
-
-Monitoramento exibe status em tempo real
-
-🗄 Banco de Dados
-files_meta
-
-Armazena metadados dos arquivos.
-
-Campo	Tipo
-filename	TEXT
-rel_path	TEXT
-ext	TEXT (normalizado)
-size_bytes	INTEGER
-created_at	TEXT
-modified_at	TEXT
-mtime_ns	INTEGER
-path_hash	TEXT
-files (FTS5)
-
-Responsável pela busca full-text performática.
-
-indexer_status
-
-Controla execução do indexador:
-
-arquivos processados
-
-total estimado
-
-tempo de execução
-
-estatísticas da última execução
-
-activities
-
-Log de ações do usuário:
-
-search
-
-preview
-
-download
-
-vacuum
-
-clear_activities
-
-🚀 Instalação
-1️⃣ Clone o projeto
-git clone https://github.com/seu-usuario/enterprise-file-indexer.git
-cd enterprise-file-indexer
-
-2️⃣ Crie o ambiente virtual
+```bash
+git clone https://github.com/seu-usuario/indexador.git
+cd indexador
 python -m venv .venv
 source .venv/bin/activate
-
-3️⃣ Instale dependências
 pip install -r requirements.txt
 
-4️⃣ Configure o .env
 ROOT_DIR=/caminho/dos/arquivos
-DB_PATH=/var/lib/indexador/file_index.db
+DB_PATH=/caminho/do/banco/file_index.db
 
-▶️ Executando o Indexador
 python -m app.indexer
 
+Funcionalidades da indexação:
+    - Incremental
+    - Atualiza arquivos modificados
+    - Remove arquivos deletados
+    - Atualiza estatísticas automaticamente
 
-✔️ Indexação incremental
-✔️ Atualiza arquivos modificados
-✔️ Remove deletados
-✔️ Atualiza status
-
-🌐 Executando o Servidor
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+Executando o Servidor
+ - uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 Produção recomendada:
-gunicorn -k uvicorn.workers.UvicornWorker app.main:app
-
-🔍 Como Funciona a Busca
-
-A busca segue esta ordem:
-
-Detecta busca por extensão
-
-Tenta FTS (Full Text Search)
-
-Se não houver resultado → fallback LIKE
-
-Ordena por data (recente/antigo)
-
-Extensões são normalizadas:
-
-ext = ext.lower().lstrip(".")
-
-📊 Escalabilidade
-Estimativa de uso de armazenamento (metadados)
-Arquivos	Tamanho estimado DB
-1 milhão	~600MB
-10 milhões	~6GB
-40 milhões	~25–40GB
-
-⚠️ O sistema não copia arquivos, apenas metadados.
-
-🔒 Segurança
-
-Proteção contra path traversal
-
-Lock para evitar múltiplos indexadores simultâneos
-
-Bloqueio de preview para arquivos > 2GB
-
-Banco reindexável (não é crítico)
-
-📈 Diferenciais Técnicos
-
-Arquitetura simples e robusta
-
-Baixo custo operacional
-
-Independente do storage
-
-Alta performance de leitura
-
-Fácil manutenção
-
-Reindexação segura
-
-🛠 Possíveis Evoluções
-
-PostgreSQL para >100M arquivos
-
-ElasticSearch
-
-Redis cache
-
-Indexação distribuída
-
-Clusterização
-
-👨‍💻 Autor
-
-Janailson Firmino de Almeida
-Backend Developer# Indexador---Amigos-do-bem
+ - gunicorn -k uvicorn.workers.UvicornWorker app.main:app
