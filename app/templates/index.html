@@ -12,10 +12,11 @@
         />
 
         <div class="dropdown custom-sort">
-            <button class="btn-sort" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <button class="btn-sort" type="button" data-bs-toggle="dropdown">
                 <i class="bi bi-view-stacked"></i>
                 <i class="bi bi-chevron-down"></i>
             </button>
+
             <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
                 <li class="dropdown-header">ORDENAR POR</li>
 
@@ -84,7 +85,6 @@
     {% endif %}
 </div>
 
-<!-- ================= ESTADO INICIAL ================= -->
 {% if not last_query %}
 <div class="empty-state">
     <i class="bi bi-folder2-open" style="font-size:2rem;"></i>
@@ -97,36 +97,31 @@
 <!-- ================= BREADCRUMB ================= -->
 <div class="section">
     <div class="breadcrumb-path">
-        <span class="breadcrumb-item">
-            <button type="button">Root</button>
-        </span>
+        <span class="breadcrumb-item">Root</span>
         <span class="breadcrumb-sep">/</span>
-        <span class="breadcrumb-item">
-            {{ last_query }}
-        </span>
+        <span class="breadcrumb-item">{{ last_query }}</span>
     </div>
 </div>
 
 <!-- ================= RESULTADOS ================= -->
 <div class="section">
-
     <h6>Resultados</h6>
 
     {% if results|length == 0 %}
     <div class="empty-state">
         <i class="bi bi-search"></i>
         <p>Nenhum resultado encontrado</p>
-        <small>Tente outro termo ou caminho.</small>
     </div>
     {% endif %}
 
+    {% if results|length > 0 %}
     <table class="results-table">
         <thead>
         <tr>
             <th>Arquivo</th>
             <th>Caminho</th>
             <th>Extensão</th>
-            <th>Tamanho</th>
+            <th style="text-align:right;">Tamanho</th>
             <th>Modificado</th>
             <th>Ações</th>
         </tr>
@@ -134,100 +129,67 @@
         <tbody>
         {% for r in results %}
         <tr>
+            <!-- ARQUIVO -->
             <td class="file-name" data-filename="{{ r.filename }}">
-                {{ r.filename }}
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="bi"
+                       data-fileicon
+                       data-ext="{{ r.ext }}"></i>
+
+                    <span data-fn-text style="font-weight:600;">
+                        {{ r.filename }}
+                    </span>
+                </div>
             </td>
-            <td class="file-path" title="{{ r.network_path }}">
-                {{ r.network_path }}
+
+            <!-- CAMINHO (COM ELLIPSIS + COPIAR) -->
+            <td class="file-path">
+                <div class="path-wrap">
+                    <i class="bi bi-folder2-open path-ico"></i>
+                    <span class="path-text">
+      {{ r.network_path }}
+    </span>
+                </div>
             </td>
+
+            <!-- EXT -->
             <td>
                 <span class="ext-badge">{{ r.ext }}</span>
             </td>
-            <td>{{ r.size_mb }} MB</td>
-            <td>{{ r.modified_at }}</td>
-            <td class="actions">
 
-                <!-- VISUALIZAR (PASSA PELO BACKEND) -->
-                <button
-                        title="Visualizar"
-                        onclick="previewFile(
-                        '/preview?path={{ r.rel_path | urlencode }}',
-                        '{{ r.ext }}',
-                        '{{ r.filename }}'
-                    )"
-                >
+            <!-- TAMANHO -->
+            <td style="text-align:right;">
+                {{ r.size_mb }} MB
+            </td>
+
+            <!-- DATA -->
+            <td>{{ r.modified_at }}</td>
+
+            <!-- AÇÕES -->
+            <td class="actions">
+                <button onclick="previewFile(
+                    '/preview?path={{ r.rel_path | urlencode }}',
+                    '{{ r.ext }}',
+                    '{{ r.filename }}')">
                     <i class="bi bi-eye"></i>
                 </button>
 
-                <!-- DOWNLOAD -->
-                <a
-                        href="/download?path={{ r.rel_path | urlencode }}" download
-                        title="Baixar arquivo"
-                >
+                <a href="/download?path={{ r.rel_path | urlencode }}" download>
                     <i class="bi bi-download"></i>
                 </a>
-
             </td>
         </tr>
         {% endfor %}
         </tbody>
     </table>
-
+    {% endif %}
 </div>
-
-<!-- ================= PAGINAÇÃO ================= -->
-{% if meta.total_pages > 1 %}
-<div class="pagination-container"
-     style="margin-top: 30px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-
-    <div class="pagination-wrapper" style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
-
-        {# Botão para a Primeira Página (opcional) #}
-        {% if meta.page > 3 %}
-        <form method="post" action="/search" style="display: inline;">
-            <input type="hidden" name="query" value="{{ last_query }}">
-            <input type="hidden" name="order" value="{{ meta.order }}">
-            <input type="hidden" name="page" value="1">
-            <button type="submit" class="page-btn">1</button>
-        </form>
-        <span style="align-self: flex-end; padding-bottom: 5px;">...</span>
-        {% endif %}
-
-        {# Loop pelas páginas inteligentes geradas no Python #}
-        {% for p in meta.pages_to_show %}
-        <form method="post" action="/search" style="display: inline;">
-            <input type="hidden" name="query" value="{{ last_query }}">
-            <input type="hidden" name="order" value="{{ meta.order }}">
-            <input type="hidden" name="page" value="{{ p }}">
-            <button type="submit" class="page-btn {% if p == meta.page %}active{% endif %}">
-                {{ p }}
-            </button>
-        </form>
-        {% endfor %}
-
-        {# Botão para a Última Página (opcional) #}
-        {% if meta.total_pages > (meta.pages_to_show[-1] if meta.pages_to_show else 0) %}
-        <span style="align-self: flex-end; padding-bottom: 5px;">...</span>
-        <form method="post" action="/search" style="display: inline;">
-            <input type="hidden" name="query" value="{{ last_query }}">
-            <input type="hidden" name="order" value="{{ meta.order }}">
-            <input type="hidden" name="page" value="{{ meta.total_pages }}">
-            <button type="submit" class="page-btn">{{ meta.total_pages }}</button>
-        </form>
-        {% endif %}
-    </div>
-
-    <div class="pagination-info" style="font-size: 0.85rem; color: #666;">
-        A mostrar página <strong>{{ meta.page }}</strong> de <strong>{{ meta.total_pages }}</strong>
-        ({{ meta.total_matches }} resultados encontrados)
-    </div>
-</div>
-{% endif %}
 
 {% endif %}
 
 <!-- ================= JS ================= -->
 <script>
+
     /* LOADING */
     const form = document.querySelector('.search-form');
     const btn = document.getElementById('searchBtn');
@@ -244,29 +206,65 @@
         const query = "{{ last_query | e }}".trim();
         if (query.length < 2) return;
 
+        const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(`(${safe})`, 'gi');
+
         document.querySelectorAll('.file-name').forEach(cell => {
-            const text = cell.dataset.filename;
-            const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            cell.innerHTML = text.replace(
-                new RegExp(`(${safe})`, 'gi'),
-                '<mark>$1</mark>'
-            );
+            const text = cell.dataset.filename || "";
+            const span = cell.querySelector('[data-fn-text]');
+            if (span) {
+                span.innerHTML = text.replace(re, '<mark>$1</mark>');
+            }
         });
     })();
 
-function submitSort(value) {
-    // Atualiza o valor que vai para o Python
-    const orderInput = document.getElementById('orderInput');
-    if (orderInput) {
-        orderInput.value = value;
+    /* ÍCONES POR EXTENSÃO */
+    (function () {
+        const map = {
+            pdf: ["bi-filetype-pdf", "#DC2626"],
+            doc: ["bi-file-earmark-word", "#2563EB"],
+            docx: ["bi-file-earmark-word", "#2563EB"],
+            xls: ["bi-file-earmark-excel", "#16A34A"],
+            xlsx: ["bi-file-earmark-excel", "#16A34A"],
+            ppt: ["bi-file-earmark-ppt", "#EA580C"],
+            pptx: ["bi-file-earmark-ppt", "#EA580C"],
+            png: ["bi-file-earmark-image", "#0EA5E9"],
+            jpg: ["bi-file-earmark-image", "#0EA5E9"],
+            jpeg: ["bi-file-earmark-image", "#0EA5E9"],
+            zip: ["bi-file-earmark-zip", "#CA8A04"],
+            mp4: ["bi-file-earmark-play", "#0EA5E9"],
+            default: ["bi-file-earmark", "var(--adb-blue)"]
+        };
 
-        // Encontra o formulário e envia
-        const form = document.querySelector('.search-form');
-        if (form) {
-            form.submit();
+        document.querySelectorAll("[data-fileicon]").forEach(el => {
+            const ext = (el.dataset.ext || "").toLowerCase();
+            const conf = map[ext] || map.default;
+            el.className = "bi " + conf[0];
+            el.style.color = conf[1];
+        });
+    })();
+
+    /* COPIAR CAMINHO */
+    function copyText(text) {
+        try {
+            navigator.clipboard.writeText(text);
+            if (typeof showToast === "function") showToast("Caminho copiado!");
+        } catch (e) {
+            const t = document.createElement("textarea");
+            t.value = text;
+            document.body.appendChild(t);
+            t.select();
+            document.execCommand("copy");
+            t.remove();
+            if (typeof showToast === "function") showToast("Caminho copiado!");
         }
     }
-}
+
+    function submitSort(value) {
+        document.getElementById("orderInput").value = value;
+        document.querySelector(".search-form").submit();
+    }
+
 </script>
 
 {% endblock %}
