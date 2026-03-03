@@ -352,43 +352,96 @@ body{
     box-shadow:0 2px 8px rgba(0,0,0,.05);
     color:#6b7280;
 }
-
 /* =========================
-   PAGINAÇÃO
+   PAGINAÇÃO (MELHORADA)
 ========================= */
-.pagination-wrapper{
-    display:flex;
-    justify-content:center;
-    gap:6px;
-    margin-top:24px;
-}
+    .pagination-wrapper{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:14px;
+      margin-top:24px;
+      flex-wrap:wrap;
+    }
 
-.page-btn {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 8px 14px;      /* Aumentei um pouco o clique */
-    font-size: .85rem;
-    color: var(--adb-blue);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 40px;        /* Garante que botões pequenos não fiquem deformados */
-}
+    .pagination{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:14px;
+      padding:8px;
+      box-shadow:0 6px 18px rgba(0,0,0,.06);
+    }
 
-.page-btn:hover {
-    border-color: var(--adb-blue);
-    background-color: #f0f7ff;
-}
+    .page-btn{
+      background:transparent;
+      border:1px solid transparent;
+      border-radius:10px;
+      padding:8px 12px;
+      min-width:40px;
+      height:40px;
+      font-size:.9rem;
+      color:var(--adb-blue);
+      cursor:pointer;
+      transition:all .18s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
 
-.page-btn.active {
-    background: var(--adb-blue);
-    color: #fff;
-    border-color: var(--adb-blue);
-    font-weight: 600;
-}
+    .page-btn:hover{
+      background:#f0f7ff;
+      border-color:#cfe6ff;
+    }
+
+    .page-btn:focus{
+      outline:none;
+      box-shadow:0 0 0 3px rgba(0,71,185,.18);
+      border-color:#cfe6ff;
+    }
+
+    .page-btn.active{
+      background:var(--adb-blue);
+      color:#fff;
+      border-color:var(--adb-blue);
+      font-weight:700;
+    }
+
+    .page-btn.icon{
+      font-size:1.05rem;
+      padding:8px 10px;
+    }
+
+    .page-btn.disabled,
+    .page-btn:disabled{
+      opacity:.45;
+      cursor:not-allowed;
+      background:transparent;
+      border-color:transparent;
+    }
+
+    .page-ellipsis{
+      width:34px;
+      height:40px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      color:#9ca3af;
+      font-weight:700;
+      user-select:none;
+    }
+
+    .pagination-meta{
+      font-size:.85rem;
+      color:#6b7280;
+    }
+
+    .pagination-meta strong{
+      color:#111827;
+      font-weight:700;
+    }
 
 /* =========================
    SPINNER

@@ -115,6 +115,7 @@
     {% endif %}
 
     {% if results|length > 0 %}
+
     <table class="results-table">
         <thead>
         <tr>
@@ -126,51 +127,35 @@
             <th>Ações</th>
         </tr>
         </thead>
+
         <tbody>
         {% for r in results %}
         <tr>
-            <!-- ARQUIVO -->
             <td class="file-name" data-filename="{{ r.filename }}">
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <i class="bi"
-                       data-fileicon
-                       data-ext="{{ r.ext }}"></i>
-
-                    <span data-fn-text style="font-weight:600;">
-                        {{ r.filename }}
-                    </span>
+                    <i class="bi" data-fileicon data-ext="{{ r.ext }}"></i>
+                    <span data-fn-text style="font-weight:600;">{{ r.filename }}</span>
                 </div>
             </td>
 
-            <!-- CAMINHO (COM ELLIPSIS + COPIAR) -->
             <td class="file-path">
                 <div class="path-wrap">
                     <i class="bi bi-folder2-open path-ico"></i>
-                    <span class="path-text">
-      {{ r.network_path }}
-    </span>
+                    <span class="path-text">{{ r.network_path }}</span>
                 </div>
             </td>
 
-            <!-- EXT -->
-            <td>
-                <span class="ext-badge">{{ r.ext }}</span>
-            </td>
+            <td><span class="ext-badge">{{ r.ext }}</span></td>
 
-            <!-- TAMANHO -->
-            <td style="text-align:right;">
-                {{ r.size_mb }} MB
-            </td>
+            <td style="text-align:right;">{{ r.size_mb }} MB</td>
 
-            <!-- DATA -->
             <td>{{ r.modified_at }}</td>
 
-            <!-- AÇÕES -->
             <td class="actions">
-                <button onclick="previewFile(
-                    '/preview?path={{ r.rel_path | urlencode }}',
-                    '{{ r.ext }}',
-                    '{{ r.filename }}')">
+                <button type="button" onclick="previewFile(
+          '/preview?path={{ r.rel_path | urlencode }}',
+          '{{ r.ext }}',
+          '{{ r.filename }}')">
                     <i class="bi bi-eye"></i>
                 </button>
 
@@ -182,7 +167,99 @@
         {% endfor %}
         </tbody>
     </table>
+
+    {% if meta.total_pages > 1 %}
+    <div class="pagination-wrapper">
+
+        <form id="paginationForm" method="post" action="/search">
+            <input type="hidden" name="query" value="{{ last_query }}">
+            <input type="hidden" name="order" value="{{ meta.order }}">
+            <input type="hidden" name="page" id="pageInput">
+            <input type="hidden" name="page_size" value="{{ meta.page_size }}">
+        </form>
+
+        <div class="pagination" role="navigation" aria-label="Paginação">
+
+            <button type="button"
+                    class="page-btn icon {% if meta.page == 1 %}disabled{% endif %}"
+                    {% if meta.page== 1 %}disabled{% endif %}
+                    aria-label="Primeira página"
+                    onclick="goToPage(1)">«
+            </button>
+
+            <button type="button"
+                    class="page-btn icon {% if meta.page == 1 %}disabled{% endif %}"
+                    {% if meta.page== 1 %}disabled{% endif %}
+                    aria-label="Página anterior"
+                    onclick="goToPage({{ meta.page - 1 }})">‹
+            </button>
+
+            {% set total = meta.total_pages %}
+            {% set current = meta.page %}
+            {% set window = 2 %}
+            {% set start = current - window %}
+            {% set end = current + window %}
+            {% if start < 1 %}{% set start = 1 %}{% endif %}
+            {% if end > total %}{% set end = total %}{% endif %}
+
+            <button type="button"
+                    class="page-btn {% if 1 == current %}active{% endif %}"
+                    aria-label="Página 1"
+                    onclick="goToPage(1)">1
+            </button>
+
+            {% if start > 2 %}
+            <span class="page-ellipsis" aria-hidden="true">…</span>
+            {% endif %}
+
+            {% for p in range(start, end + 1) %}
+            {% if p != 1 and p != total %}
+            <button type="button"
+                    class="page-btn {% if p == current %}active{% endif %}"
+                    {% if p== current %}aria-current="page" {% endif %}
+                    aria-label="Página {{ p }}"
+                    onclick="goToPage({{ p }})">{{ p }}
+            </button>
+            {% endif %}
+            {% endfor %}
+
+            {% if end < total - 1 %}
+            <span class="page-ellipsis" aria-hidden="true">…</span>
+            {% endif %}
+
+            {% if total > 1 %}
+            <button type="button"
+                    class="page-btn {% if total == current %}active{% endif %}"
+                    aria-label="Página {{ total }}"
+                    onclick="goToPage({{ total }})">{{ total }}
+            </button>
+            {% endif %}
+
+            <button type="button"
+                    class="page-btn icon {% if meta.page == meta.total_pages %}disabled{% endif %}"
+                    {% if meta.page== meta.total_pages %}disabled{% endif %}
+                    aria-label="Próxima página"
+                    onclick="goToPage({{ meta.page + 1 }})">›
+            </button>
+
+            <button type="button"
+                    class="page-btn icon {% if meta.page == meta.total_pages %}disabled{% endif %}"
+                    {% if meta.page== meta.total_pages %}disabled{% endif %}
+                    aria-label="Última página"
+                    onclick="goToPage({{ meta.total_pages }})">»
+            </button>
+
+        </div>
+
+<!--        <div class="pagination-meta">-->
+<!--            Página <strong>{{ meta.page }}</strong> de <strong>{{ meta.total_pages }}</strong>-->
+<!--        </div>-->
+
+    </div>
     {% endif %}
+
+    {% endif %}
+    </table>
 </div>
 
 {% endif %}
@@ -263,6 +340,14 @@
     function submitSort(value) {
         document.getElementById("orderInput").value = value;
         document.querySelector(".search-form").submit();
+    }
+
+    function goToPage(page) {
+      const total = Number("{{ meta.total_pages }}") || 1;
+      const p = Math.max(1, Math.min(total, page));
+
+      document.getElementById("pageInput").value = p;
+      document.getElementById("paginationForm").submit();
     }
 
 </script>
