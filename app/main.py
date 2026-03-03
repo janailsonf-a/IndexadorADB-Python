@@ -12,6 +12,11 @@ from app.config import settings
 
 converter = PathConverter()
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+BR_TZ = ZoneInfo("America/Sao_Paulo")
+
 import psutil
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
@@ -118,9 +123,9 @@ async def block_large_files(request: Request, call_next):
 def get_disk_usage(path: str):
     total, used, free = shutil.disk_usage(path)
     return {
-        "total_tb": round(total / (1024**4), 2),
-        "used_tb": round(used / (1024**4), 2),
-        "free_tb": round(free / (1024**4), 2),
+        "total_tb": round(total / (1024 ** 4), 2),
+        "used_tb": round(used / (1024 ** 4), 2),
+        "free_tb": round(free / (1024 ** 4), 2),
         "usage_percent": round((used / total) * 100, 1),
         "path": path,
     }
@@ -219,17 +224,14 @@ def ensure_activities_table(conn: sqlite3.Connection):
 
 
 def log_activity(action: str, filename: str | None, rel_path: str | None):
-    """
-    Nunca pode derrubar o sistema.
-    """
     try:
         conn = db_connect()
         conn.execute(
             """
-                     INSERT INTO activities (action, filename, rel_path, created_at)
-                     VALUES (?, ?, ?, ?)
-                     """,
-            (action, filename, rel_path, datetime.now().isoformat()),
+            INSERT INTO activities (action, filename, rel_path, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (action, filename, rel_path, datetime.now(tz=BR_TZ).isoformat()),
         )
         conn.commit()
         conn.close()
@@ -481,14 +483,16 @@ async def home(request: Request):
 async def search_get(request: Request):
     """Redireciona para a home se tentarem acessar /search via URL direta"""
     return RedirectResponse(url="/")
+
+
 @app.post("/search", response_class=HTMLResponse)
 async def search(
-    request: Request,
-    query: str = Form(...),
-    page: int = Form(1),
-    page_size: int = Form(PAGE_SIZE_DEFAULT),
-    order: str = Form("recent"),
-    search_type: str = Form("all"),
+        request: Request,
+        query: str = Form(...),
+        page: int = Form(1),
+        page_size: int = Form(PAGE_SIZE_DEFAULT),
+        order: str = Form("recent"),
+        search_type: str = Form("all"),
 ):
     assert_db_root_dir()
 
@@ -543,9 +547,9 @@ async def search(
     page = clamp_int(page, 1, 1, 100000)
 
     if (
-        (not (q_lower.startswith(".") and len(q_lower) >= 2))
-        and (not ext_query)
-        and len(q) < 2
+            (not (q_lower.startswith(".") and len(q_lower) >= 2))
+            and (not ext_query)
+            and len(q) < 2
     ):
         return templates.TemplateResponse(
             "index.html",

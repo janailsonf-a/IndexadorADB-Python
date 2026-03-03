@@ -86,54 +86,59 @@ function formatLine(a){
     return `${time} ${action} ${file}\n→ ${path}`;
 }
 
+function formatBR(created_at){
+  const dt = new Date(created_at);
+  return dt.toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  }).replace(",", "");
+}
+
 function loadActivities(){
-    fetch("/api/activities")
-        .then(r => r.json())
-        .then(data => {
-            const el = document.getElementById("activitiesTerminal");
+  fetch("/api/activities")
+    .then(r => r.json())
+    .then(data => {
+      const el = document.getElementById("activitiesTerminal");
 
-            if(!data.length){
-                el.textContent = "Nenhuma atividade registrada.";
-                return;
-            }
+      if(!data.length){
+        el.textContent = "Nenhuma atividade registrada.";
+        return;
+      }
 
-            el.innerHTML = "";
+      el.innerHTML = "";
 
-            data.forEach(a => {
-                const time = new Date(a.created_at)
-                    .toISOString()
-                    .replace("T"," ")
-                    .split(".")[0];
+      data.forEach(a => {
+        const time = formatBR(a.created_at);
+        const action = (a.action || "").toUpperCase().padEnd(8);
+        const file = (a.filename || "-");
+        const path = (a.rel_path || "");
 
-                const action = a.action.toUpperCase().padEnd(8);
-                const file = a.filename || "-";
-                const path = a.rel_path || "";
+        let cls = "log-default";
+        if(a.action === "search")   cls = "log-search";
+        if(a.action === "preview")  cls = "log-preview";
+        if(a.action === "download") cls = "log-download";
+        if(a.action === "delete")   cls = "log-delete";
 
-                let cls = "log-default";
-                if(a.action === "search")   cls = "log-search";
-                if(a.action === "preview")  cls = "log-preview";
-                if(a.action === "download") cls = "log-download";
-                if(a.action === "delete")   cls = "log-delete";
-
-                el.innerHTML +=
+        el.innerHTML +=
 `<span class="${cls}">${time} ${action} ${file}</span>
 <span class="log-path">→ ${path}</span>\n`;
-            });
-        });
+      });
+    });
 }
 
 function clearActivities(){
-    if(!confirm("Limpar histórico de atividades?")) return;
-    fetch("/api/activities/clear", { method:"POST" })
-        .then(() => loadActivities());
+  if(!confirm("Limpar histórico de atividades?")) return;
+  fetch("/api/activities/clear", { method:"POST" })
+    .then(() => loadActivities());
 }
 
 loadActivities();
 </script>
-
-
-
-
-
 
 {% endblock %}
