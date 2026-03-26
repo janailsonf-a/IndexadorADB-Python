@@ -1,0 +1,28 @@
+services:
+  api:
+    build: .
+    container_name: indexador-api
+    command: python -m uvicorn app.main:app --host 0.0.0.0 --port 9001
+    ports:
+      - "9001:9001"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - /home/janailsonf-a/teste_10m:/data/indexados
+    restart: unless-stopped
+
+  indexer:
+    build: .
+    container_name: indexador-worker
+    command: /app/scripts/run_indexer.sh
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - /home/janailsonf-a/teste_10m:/data/indexados
+    restart: unless-stopped

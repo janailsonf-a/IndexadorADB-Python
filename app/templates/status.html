@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-wrap">
+  <section class="page-hero">
+    <div class="hero-top">
+      <div>
+        <h1>Indexador de Arquivos</h1>
+        <p>Busca rápida, monitoramento e navegação inteligente do acervo.</p>
+      </div>
+      <a href="/status" class="hero-link">
+        <i class="bi bi-speedometer2 me-1"></i>
+        Ver status do sistema
+      </a>
+    </div>
+  </section>
+
+  <section class="surface-card search-panel">
+    <form method="get" action="/search" class="search-form">
+      <input
+        type="text"
+        name="query"
+        class="form-control"
+        placeholder="Busque por nome, caminho ou extensão..."
+        value="{{ last_query or '' }}"
+      >
+
+      <select name="order" class="form-select">
+        <option value="recent" {% if meta.order == "recent" %}selected{% endif %}>Mais recentes</option>
+        <option value="name_asc" {% if meta.order == "name_asc" %}selected{% endif %}>Nome A-Z</option>
+        <option value="name_desc" {% if meta.order == "name_desc" %}selected{% endif %}>Nome Z-A</option>
+        <option value="size_desc" {% if meta.order == "size_desc" %}selected{% endif %}>Maior tamanho</option>
+        <option value="type" {% if meta.order == "type" %}selected{% endif %}>Tipo</option>
+        <option value="relevance" {% if meta.order == "relevance" %}selected{% endif %}>Relevância</option>
+      </select>
+
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-search me-1"></i>
+        Buscar
+      </button>
+    </form>
+
+    {% if error %}
+      <div class="alert alert-warning mt-3 mb-0">{{ error }}</div>
+    {% endif %}
+  </section>
+
+  <section class="metrics-grid">
+    <div class="surface-card metric-card">
+      <div class="metric-label">Arquivos indexados</div>
+      <div class="metric-value">{{ "{:,}".format(meta.total_indexed).replace(",", ".") }}</div>
+      <div class="metric-helper">Base disponível para pesquisa</div>
+    </div>
+
+    <div class="surface-card metric-card">
+      <div class="metric-label">Resultados encontrados</div>
+      <div class="metric-value">{{ "{:,}".format(meta.total_matches).replace(",", ".") }}</div>
+      <div class="metric-helper">Para a busca atual</div>
+    </div>
+
+    <div class="surface-card metric-card">
+      <div class="metric-label">Tempo da consulta</div>
+      <div class="metric-value">
+        {% if meta.query_ms is not none %}
+          {{ meta.query_ms }} ms
+        {% else %}
+          --
+        {% endif %}
+      </div>
+      <div class="metric-helper">Velocidade da busca</div>
+    </div>
+  </section>
+
+  <section class="surface-card results-card">
+    <div class="section-head">
+      <div>
+        <h2 class="section-title">Resultados</h2>
+        {% if last_query %}
+          <div class="section-subtitle">Busca atual: <strong>{{ last_query }}</strong></div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if results %}
+      <div class="results-list">
+        {% for item in results %}
+          <article class="result-item">
+            <div class="result-header">
+              <div class="result-main">
+                <h3 class="result-title">{{ item.filename }}</h3>
+                <div class="result-path">{{ item.rel_path }}</div>
+              </div>
+              <span class="file-badge">{{ item.ext or "arquivo" }}</span>
+            </div>
+
+            <div class="result-meta">
+              <span class="meta-pill"><i class="bi bi-hdd me-1"></i> {{ item.size_mb }} MB</span>
+              <span class="meta-pill"><i class="bi bi-calendar-plus me-1"></i> {{ item.created_at or "--" }}</span>
+              <span class="meta-pill"><i class="bi bi-clock-history me-1"></i> {{ item.modified_at or "--" }}</span>
+            </div>
+
+            <div class="result-actions">
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                onclick="previewFile('{{ item.preview_link }}', '{{ item.ext }}', '{{ item.filename|escape }}')">
+                <i class="bi bi-eye me-1"></i> Preview
+              </button>
+
+              <a href="/download?path={{ item.rel_path | urlencode }}" class="btn btn-outline-dark btn-sm">
+                <i class="bi bi-download me-1"></i> Download
+              </a>
+
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                onclick="navigator.clipboard.writeText('{{ item.network_path }}'); showToast('Caminho copiado!')">
+                <i class="bi bi-clipboard me-1"></i> Copiar caminho
+              </button>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+
+      {% if meta.total_pages > 1 %}
+        <nav class="mt-4">
+          <ul class="pagination mb-0">
+            {% for p in meta.pages_to_show %}
+              <li class="page-item {% if p == meta.page %}active{% endif %}">
+                <a class="page-link" href="/search?query={{ last_query }}&page={{ p }}&page_size={{ meta.page_size }}&order={{ meta.order }}">
+                  {{ p }}
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="empty-state">
+        <h3>Nenhum resultado para mostrar</h3>
+        <p>Faça uma busca para localizar arquivos por nome, caminho ou extensão.</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
