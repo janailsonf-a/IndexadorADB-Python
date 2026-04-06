@@ -1,70 +1,107 @@
-# 🔎 Indexador
+# 🔎 Noxis Backend
 
-Sistema corporativo de indexação e busca de arquivos para ambientes com milhões de arquivos.
-
-<p align="left">
-  <img src="https://img.shields.io/badge/Python-3.12-blue?logo=python" />
-  <img src="https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi" />
-  <img src="https://img.shields.io/badge/SQLite-FTS5-003B57?logo=sqlite" />
-  <img src="https://img.shields.io/badge/Status-Production%20Ready-brightgreen" />
-</p>
+High-performance file indexing and search system built with FastAPI for large-scale environments.
 
 ---
 
-## 📌 Sobre o Projeto
+## 🚀 Overview
 
-O Indexador é um sistema desenvolvido para realizar indexação e busca eficiente de arquivos em ambientes corporativos com grande volume de dados.
+Noxis is a backend system designed for high-performance file indexing and search in large-scale environments.
 
-O sistema armazena apenas **metadados**, garantindo baixo custo operacional e alta performance.
+Instead of storing file contents, the system indexes only metadata, ensuring:
 
----
-
-## ⚙️ Funcionalidades
-
-- Busca rápida por nome, caminho ou extensão  
-- Indexação apenas de metadados  
-- Utilização de SQLite com FTS5  
-- Monitoramento do status de indexação  
-- Proteção contra path traversal  
-- Reindexação segura  
+- ⚡ High performance  
+- 💾 Low storage usage  
+- 🔍 Fast search results  
 
 ---
 
-## 🏗 Arquitetura
+## 🧠 Features
 
-app/
-├── main.py # API + Interface Web
-├── indexer.py # Processo de indexação (CLI)
-├── db.py # Schema e helpers do banco
-├── templates/ # Interface HTML
-└── static/ # Arquivos estáticos
-
-file_index.db # Banco SQLite (metadados)
+- 🔎 Search files by name, path, or extension  
+- ⚡ Full-text search using SQLite FTS5  
+- 📄 File preview (safe inline rendering)  
+- ⬇️ File download with validation  
+- 📊 System monitoring (CPU, RAM, Disk)  
+- 🔐 Secure file handling (path traversal protection)  
+- 🔄 Incremental indexing system  
 
 ---
 
-## 🚀 Instalação
+## 🛠 Tech Stack
+
+- Python  
+- FastAPI  
+- SQLite (FTS5)  
+- Uvicorn  
+- Docker (optional)  
+
+---
+
+## 🏗 Architecture
+
+The project follows a modular architecture:
+
+- **Repositories** → data access layer  
+- **Services** → business logic  
+- **Routes** → API endpoints  
+- **Core** → configuration and constants  
+
+This structure improves maintainability and scalability.
+
+---
+
+## 📦 Installation
 
 ```bash
-git clone https://github.com/seu-usuario/indexador.git
-cd indexador
+git clone https://github.com/janailsonf-a/Noxis-Python
+cd Noxis-Python
+
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate  # Linux
+
 pip install -r requirements.txt
+```
+---
+## ▶️ Running
+```bash
+uvicorn app.main:app --reload
 
-ROOT_DIR=/caminho/dos/arquivos
-DB_PATH=/caminho/do/banco/file_index.db
+```
+---
+## 🔌 API Endpoints
+| Endpoint    | Description    |
+| ----------- | -------------- |
+| `/search`   | Search files   |
+| `/preview`  | Preview files  |
+| `/download` | Download files |
+| `/status`   | System metrics |
+| `/health`   | Health check   |
 
-python -m app.indexer
 
-Funcionalidades da indexação:
-    - Incremental
-    - Atualiza arquivos modificados
-    - Remove arquivos deletados
-    - Atualiza estatísticas automaticamente
+---
+## 📊 Performance
+The system is optimized to handle millions of files by indexing only metadata, enabling fast queries and low resource consumption.
 
-Executando o Servidor
- - uvicorn app.main:app --host 0.0.0.0 --port 8000
+## 🔐 Security
 
-Produção recomendada:
- - gunicorn -k uvicorn.workers.UvicornWorker app.main:app
+- Protection against path traversal  
+- File size validation  
+- Safe file preview  
+
+
+## 🌍 Use Cases
+
+- Corporate file systems  
+- Document indexing platforms  
+- Internal search tools  
+- Large-scale storage environments
+
+## 🔗 Frontend
+
+Frontend available at:
+➡️ https://github.com/janailsonf-a/Noxis-Vue
+
+## 👨‍💻 Author
+
+Developed by Janailson Almeida
