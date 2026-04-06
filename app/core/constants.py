@@ -21,5 +21,15 @@ SAFE_TEXT_EXTENSIONS = {
 }
 
 SAFE_INLINE_EXTENSIONS = SAFE_TEXT_EXTENSIONS | {
-    "jpg", "jpeg", "png", "webp", "gif", "svg", "pdf", "mp4", "webm"
+    "jpg",
+    "jpeg",
+    "png",
+    "webp",
+    "gif",
+    "svg",
+    "bmp",
+    "avif",
+    "pdf",
+    "mp4",
+    "webm",
 }

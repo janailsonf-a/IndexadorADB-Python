@@ -1,19 +1,29 @@
 from fastapi import APIRouter, Query, Request
 
 from app.core.constants import PAGE_SIZE_DEFAULT
+from app.schemas.search import SearchResponse
 from app.services.search_service import SearchService
 
 router = APIRouter(prefix="/api", tags=["api-search"])
 search_service = SearchService()
 
 
-@router.get("/search")
+@router.get("/search", response_model=SearchResponse)
 async def api_search(
     request: Request,
-    query: str = Query(""),
-    page: int = Query(1),
-    page_size: int = Query(PAGE_SIZE_DEFAULT),
-    order: str = Query("recent"),
+    query: str = Query(default=""),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=PAGE_SIZE_DEFAULT, ge=5, le=100),
+    order: str = Query(default="recent"),
+    ext: str = Query(default=""),
+    area: str = Query(default=""),
 ):
-    payload = search_service.search(request, query, page, page_size, order)
-    return payload
+    return search_service.search_api(
+        request=request,
+        query=query,
+        page=page,
+        page_size=page_size,
+        order=order,
+        ext=ext,
+        area=area,
+    )

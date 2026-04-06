@@ -6,8 +6,9 @@ from urllib.parse import quote
 from app.core.constants import PAGE_SIZE_DEFAULT, ROOT_DIR
 from app.core.logger import logger
 from app.path_converter import PathConverter, detectar_sistema
-from app.repositories.status_repository import assert_db_root_dir, db_count_files
 from app.repositories.files_repository import FilesRepository
+from app.repositories.status_repository import assert_db_root_dir, db_count_files
+from app.schemas.search import SearchMeta, SearchResponse, SearchResultItem
 from app.services.activity_service import ActivityService
 
 
@@ -24,12 +25,58 @@ class SearchService:
             return default
         return max(min_v, min(max_v, v))
 
-    def search(self, request, query: str, page: int = 1, page_size: int = PAGE_SIZE_DEFAULT, order: str = "recent"):
+    @staticmethod
+    def _normalize_area(rel_path: str) -> str:
+        if not rel_path:
+            return "Geral"
+        first = rel_path.split("/")[0].strip()
+        return first if first else "Geral"
+
+    def _build_results(self, request: object, rows) -> list[SearchResultItem]:
+        sistema = detectar_sistema(getattr(request, "headers", {}).get("user-agent", ""))
+        results = []
+
+        for i, r in enumerate(rows):
+            rel_path = r["rel_path"]
+            caminho_linux = str(ROOT_DIR / rel_path)
+            caminho_publico = self.converter.gerar_caminho_publico(caminho_linux, sistema)
+
+            results.append(
+                SearchResultItem(
+                    id=f"{rel_path}-{i}",
+                    filename=r["filename"],
+                    rel_path=rel_path,
+                    full_path=caminho_publico,
+                    ext=r["ext"] or "",
+                    area=self._normalize_area(rel_path),
+                    size_mb=r["size_mb"],
+                    created_at=r["created_at"],
+                    modified_at=r["modified_at"],
+                    preview_link=f"/files/{quote(rel_path)}?disposition=inline",
+                    download_link=f"/download?path={quote(rel_path)}",
+                )
+            )
+
+        return results
+
+    def search_core(
+        self,
+        request,
+        query: str,
+        page: int = 1,
+        page_size: int = PAGE_SIZE_DEFAULT,
+        order: str = "recent",
+        ext: str = "",
+        area: str = "",
+    ):
         assert_db_root_dir()
 
         q_raw = (query or "").strip()
         q = q_raw
         q_lower = q_raw.lower()
+
+        ext = (ext or "").strip().lower().lstrip(".")
+        area = (area or "").strip().lower()
 
         common_exts = {
             "txt", "pdf", "png", "jpg", "jpeg", "webp", "gif", "svg", "mp4", "webm", "mov", "mkv",
@@ -47,9 +94,9 @@ class SearchService:
         page_size = self.clamp_int(page_size, PAGE_SIZE_DEFAULT, 5, 100)
         page = self.clamp_int(page, 1, 1, 100000)
 
-        if (not ext_query) and len(q) < 2:
+        if (not ext_query) and len(q) < 2 and not ext and not area:
             return {
-                "results": [],
+                "rows": [],
                 "last_query": q,
                 "error": "Digite ao menos 2 caracteres.",
                 "meta": {
@@ -58,12 +105,13 @@ class SearchService:
                     "total_matches": 0,
                     "page": 1,
                     "total_pages": 0,
+                    "pages_to_show": [],
                     "page_size": page_size,
                     "order": order,
                 },
             }
 
-        ActivityService.log("search", None, q)
+        ActivityService.log("search", None, q or f"ext:{ext} area:{area}")
 
         order_map = {
             "name_asc": "filename COLLATE NOCASE ASC",
@@ -85,7 +133,11 @@ class SearchService:
 
             if ext_query:
                 total_matches, rows = self.repository.search_by_extension(
-                    ext_query, order_sql, page_size, offset
+                    ext_query,
+                    order_sql,
+                    page_size,
+                    offset,
+                    area=area,
                 )
             else:
                 tokens = "".join([ch if ch.isalnum() else " " for ch in q_lower]).split()
@@ -97,6 +149,8 @@ class SearchService:
                         "bm25(files)" if order == "relevance" else order_sql,
                         page_size,
                         offset,
+                        ext=ext,
+                        area=area,
                     )
                     using_fts = total_matches > 0
                 except sqlite3.OperationalError:
@@ -109,11 +163,14 @@ class SearchService:
                         order_sql,
                         page_size,
                         offset,
+                        ext=ext,
+                        area=area,
                     )
+
         except sqlite3.OperationalError:
             logger.exception("Busca indisponível enquanto índice atualiza")
             return {
-                "results": [],
+                "rows": [],
                 "last_query": q,
                 "error": "⚙️ Índice atualizando...",
                 "meta": {
@@ -122,6 +179,7 @@ class SearchService:
                     "total_matches": 0,
                     "page": 1,
                     "total_pages": 0,
+                    "pages_to_show": [],
                     "page_size": page_size,
                     "order": order,
                 },
@@ -135,33 +193,14 @@ class SearchService:
         end_page = min(total_pages, page + window)
         if page <= 3:
             end_page = min(total_pages, 5)
-        if page > total_pages - 3:
+        if total_pages > 0 and page > total_pages - 3:
             start_page = max(1, total_pages - 4)
-        pages_to_show = list(range(start_page, end_page + 1))
-
-        sistema = detectar_sistema(request.headers.get("user-agent", ""))
-        results = []
-
-        for r in rows:
-            caminho_linux = str(ROOT_DIR / r["rel_path"])
-            caminho_publico = self.converter.gerar_caminho_publico(caminho_linux, sistema)
-            results.append(
-                {
-                    "filename": r["filename"],
-                    "rel_path": r["rel_path"],
-                    "ext": r["ext"] or "",
-                    "size_mb": r["size_mb"],
-                    "created_at": r["created_at"],
-                    "modified_at": r["modified_at"],
-                    "preview_link": f"/files/{quote(r['rel_path'])}?disposition=inline",
-                    "network_path": caminho_publico,
-                }
-            )
+        pages_to_show = list(range(start_page, end_page + 1)) if total_pages > 0 else []
 
         query_ms = round((time.perf_counter() - t0) * 1000, 2)
 
         return {
-            "results": results,
+            "rows": rows,
             "last_query": q,
             "error": "",
             "meta": {
@@ -174,4 +213,72 @@ class SearchService:
                 "page_size": page_size,
                 "order": order if using_fts or order != "relevance" else "recent",
             },
+        }
+
+    def search_api(
+        self,
+        request,
+        query: str,
+        page: int = 1,
+        page_size: int = PAGE_SIZE_DEFAULT,
+        order: str = "recent",
+        ext: str = "",
+        area: str = "",
+    ) -> SearchResponse:
+        payload = self.search_core(
+            request=request,
+            query=query,
+            page=page,
+            page_size=page_size,
+            order=order,
+            ext=ext,
+            area=area,
+        )
+
+        rows = payload["rows"]
+        meta_data = payload["meta"]
+
+        results = self._build_results(request, rows)
+
+        meta = SearchMeta(
+            total_indexed=meta_data["total_indexed"],
+            total_matches=meta_data["total_matches"],
+            query_ms=meta_data["query_ms"],
+            page=meta_data["page"],
+            total_pages=meta_data["total_pages"],
+            page_size=meta_data["page_size"],
+            order=meta_data["order"],
+            pages_to_show=meta_data["pages_to_show"],
+        )
+
+        return SearchResponse(
+            results=results,
+            meta=meta,
+            error=payload["error"],
+            last_query=payload["last_query"],
+        )
+
+    def search(
+        self,
+        request,
+        query: str,
+        page: int = 1,
+        page_size: int = PAGE_SIZE_DEFAULT,
+        order: str = "recent",
+    ):
+        payload = self.search_core(
+            request=request,
+            query=query,
+            page=page,
+            page_size=page_size,
+            order=order,
+        )
+
+        results = self._build_results(request, payload["rows"])
+
+        return {
+            "results": [item.model_dump() for item in results],
+            "last_query": payload["last_query"],
+            "error": payload["error"],
+            "meta": payload["meta"],
         }

@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -18,13 +20,7 @@ from app.routers.files import router as files_router
 from app.routers.status import router as status_router
 from app.routers.history import router as history_router
 from app.routers.activities import router as activities_router
-from fastapi.middleware.cors import CORSMiddleware
 from app.routers.api_search import router as api_search_router
-
-
-
-
-
 
 
 @asynccontextmanager
@@ -50,7 +46,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://192.168.0.162:9001",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/arquivos", StaticFiles(directory=ROOT_DIR), name="arquivos")
 
 app.include_router(web_router)
 app.include_router(files_router)
@@ -58,15 +66,6 @@ app.include_router(status_router)
 app.include_router(history_router)
 app.include_router(activities_router)
 app.include_router(api_search_router)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 @app.exception_handler(RuntimeError)

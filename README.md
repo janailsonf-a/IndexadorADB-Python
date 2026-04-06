@@ -78,7 +78,7 @@ Produção recomendada:
 - Adicionado ordenamento por relevância usando `bm25(files)` quando o FTS estiver disponível.
 - Validação obrigatória de `ROOT_DIR` e `DB_PATH` no startup.
 - Logging com arquivo rotativo em `logs/app.log`.
-- `watcher.py` atualizado para usar `watchfiles` e o schema atual de `files_meta`.
+- `watcher.py` atualizado para usar `watchfiles` e o schemas atual de `files_meta`.
 
 ### Novas variáveis opcionais no `.env`
 
