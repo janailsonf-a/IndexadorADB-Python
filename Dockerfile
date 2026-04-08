@@ -19,4 +19,4 @@ COPY . .
 RUN mkdir -p /app/logs /app/data
 RUN chmod +x /app/scripts/run_indexer.sh
 
-EXPOSE 9001
+EXPOSE 9102
