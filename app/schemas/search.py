@@ -15,6 +15,13 @@ class SearchResultItem(BaseModel):
     preview_link: Optional[str] = None
     download_link: Optional[str] = None
 
+    title: Optional[str] = None
+    description: Optional[str] = None
+    campaign: Optional[str] = None
+    status: Optional[str] = None
+    is_official: bool = False
+    tags: List[str] = Field(default_factory=list)
+
 
 class SearchMeta(BaseModel):
     total_indexed: int = 0
