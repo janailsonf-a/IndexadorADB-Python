@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+
 from app.core.constants import DB_PATH, ROOT_DIR
 from app.core.logger import logger
 from app.db import (
@@ -21,6 +22,7 @@ from app.routers.status import router as status_router
 from app.routers.history import router as history_router
 from app.routers.activities import router as activities_router
 from app.routers.api_search import router as api_search_router
+from app.routers.metadata import router as metadata_router
 
 
 @asynccontextmanager
@@ -66,6 +68,7 @@ app.include_router(status_router)
 app.include_router(history_router)
 app.include_router(activities_router)
 app.include_router(api_search_router)
+app.include_router(metadata_router)
 
 
 @app.exception_handler(RuntimeError)

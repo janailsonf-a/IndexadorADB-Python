@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from app.core.constants import DB_PATH
 from typing import Optional
 
 
@@ -140,3 +141,13 @@ def set_meta(conn: sqlite3.Connection, key: str, value: str) -> None:
 def get_meta(conn: sqlite3.Connection, key: str) -> Optional[str]:
     row = conn.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
     return row["value"] if row else None
+
+
+def get_db():
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON;")
+    try:
+        yield conn
+    finally:
+        conn.close()

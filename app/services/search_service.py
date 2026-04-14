@@ -32,18 +32,34 @@ class SearchService:
         first = rel_path.split("/")[0].strip()
         return first if first else "Geral"
 
+    @staticmethod
+    def _parse_tags(raw_tags: str | None) -> list[str]:
+        if not raw_tags:
+            return []
+
+        seen = set()
+        items = []
+
+        for tag in raw_tags.split(","):
+            clean = tag.strip()
+            if clean and clean not in seen:
+                seen.add(clean)
+                items.append(clean)
+
+        return items
+
     def _build_results(self, request: object, rows) -> list[SearchResultItem]:
         sistema = detectar_sistema(getattr(request, "headers", {}).get("user-agent", ""))
         results = []
 
-        for i, r in enumerate(rows):
+        for r in rows:
             rel_path = r["rel_path"]
             caminho_linux = str(ROOT_DIR / rel_path)
             caminho_publico = self.converter.gerar_caminho_publico(caminho_linux, sistema)
 
             results.append(
                 SearchResultItem(
-                    id=f"{rel_path}-{i}",
+                    id=str(r["id"]),
                     filename=r["filename"],
                     rel_path=rel_path,
                     full_path=caminho_publico,
@@ -54,6 +70,12 @@ class SearchService:
                     modified_at=r["modified_at"],
                     preview_link=f"/files/{quote(rel_path)}?disposition=inline",
                     download_link=f"/download?path={quote(rel_path)}",
+                    title=r["title"],
+                    description=r["description"],
+                    campaign=r["campaign"],
+                    status=r["status"],
+                    is_official=bool(r["is_official"]),
+                    tags=self._parse_tags(r["tags"]),
                 )
             )
 
@@ -114,14 +136,15 @@ class SearchService:
         ActivityService.log("search", None, q or f"ext:{ext} area:{area}")
 
         order_map = {
-            "name_asc": "filename COLLATE NOCASE ASC",
-            "name_desc": "filename COLLATE NOCASE DESC",
-            "recent": "modified_at DESC",
-            "oldest": "modified_at ASC",
-            "size_desc": "size_bytes DESC, filename ASC",
-            "type": "ext ASC, filename ASC",
+            "name_asc": "fm.filename COLLATE NOCASE ASC",
+            "name_desc": "fm.filename COLLATE NOCASE DESC",
+            "recent": "fm.modified_at DESC",
+            "oldest": "fm.modified_at ASC",
+            "size_desc": "fm.size_bytes DESC, fm.filename ASC",
+            "type": "fm.ext ASC, fm.filename ASC",
+            "relevance": "bm25(files)",
         }
-        order_sql = order_map.get(order, "modified_at DESC")
+        order_sql = order_map.get(order, "fm.modified_at DESC")
 
         offset = (page - 1) * page_size
         t0 = time.perf_counter()
@@ -133,10 +156,10 @@ class SearchService:
 
             if ext_query:
                 total_matches, rows = self.repository.search_by_extension(
-                    ext_query,
-                    order_sql,
-                    page_size,
-                    offset,
+                    ext_query=ext_query,
+                    order_sql=order_map.get(order, "fm.modified_at DESC").replace("bm25(files)", "fm.modified_at DESC"),
+                    limit=page_size,
+                    offset=offset,
                     area=area,
                 )
             else:
@@ -145,10 +168,10 @@ class SearchService:
 
                 try:
                     total_matches, rows = self.repository.search_fts(
-                        fts_term,
-                        "bm25(files)" if order == "relevance" else order_sql,
-                        page_size,
-                        offset,
+                        fts_term=fts_term,
+                        order_sql=order_sql,
+                        limit=page_size,
+                        offset=offset,
                         ext=ext,
                         area=area,
                     )
@@ -157,12 +180,13 @@ class SearchService:
                     using_fts = False
 
                 if not using_fts:
+                    fallback_order_sql = order_map.get(order, "fm.modified_at DESC").replace("bm25(files)", "fm.modified_at DESC")
                     total_matches, rows = self.repository.search_like(
-                        f"%{q}%",
-                        "%" + "%".join(q.split()) + "%",
-                        order_sql,
-                        page_size,
-                        offset,
+                        like_query=f"%{q}%",
+                        like_spaced_query="%" + "%".join(q.split()) + "%",
+                        order_sql=fallback_order_sql,
+                        limit=page_size,
+                        offset=offset,
                         ext=ext,
                         area=area,
                     )
