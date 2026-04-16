@@ -4,6 +4,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from app.routers.auth import router as auth_router
+
 
 
 from app.core.constants import DB_PATH, ROOT_DIR
@@ -69,6 +71,7 @@ app.include_router(history_router)
 app.include_router(activities_router)
 app.include_router(api_search_router)
 app.include_router(metadata_router)
+app.include_router(auth_router)
 
 
 @app.exception_handler(RuntimeError)
