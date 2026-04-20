@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from app.auth import require_admin
 from app.repositories.db_connection import db_connect
 from app.repositories.status_repository import get_indexer_status_data
 from app.services.activity_service import ActivityService
@@ -44,12 +45,12 @@ def full_status():
 
 
 @router.get("/vacuum")
-def vacuum():
+def vacuum(current_user: dict = Depends(require_admin)):
     conn = db_connect()
     try:
         conn.execute("VACUUM")
     finally:
         conn.close()
 
-    ActivityService.log("vacuum", None, None)
+    ActivityService.log("vacuum", None, None, current_user=current_user)
     return {"status": "vacuum executado"}
