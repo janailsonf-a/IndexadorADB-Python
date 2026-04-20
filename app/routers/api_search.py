@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 
+from app.auth import get_current_user
 from app.core.constants import PAGE_SIZE_DEFAULT
 from app.schemas.search import SearchResponse
 from app.services.search_service import SearchService
@@ -17,6 +18,7 @@ async def api_search(
     order: str = Query(default="recent"),
     ext: str = Query(default=""),
     area: str = Query(default=""),
+    current_user: dict = Depends(get_current_user),
 ):
     return search_service.search_api(
         request=request,
@@ -26,4 +28,5 @@ async def api_search(
         order=order,
         ext=ext,
         area=area,
+        current_user=current_user,
     )

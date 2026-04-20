@@ -26,6 +26,12 @@ def row_to_user_dict(row) -> dict:
     }
 
 
+def get_active_admin_count(conn: Connection) -> int:
+    return conn.execute(
+        "SELECT COUNT(*) AS total FROM users WHERE role = 'admin' AND is_active = 1"
+    ).fetchone()["total"]
+
+
 @router.put("/api/auth/me", response_model=UserResponse)
 def update_me(
     payload: UpdateMeRequest,
@@ -186,6 +192,24 @@ def update_user(
             detail="Você não pode remover seu próprio acesso de administrador",
         )
 
+    if current_user["user_id"] == user_id and payload.is_active is not None and not payload.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Você não pode desativar sua própria conta",
+        )
+
+    admin_count = get_active_admin_count(conn)
+    target_is_active_admin = user["role"] == "admin" and int(user["is_active"]) == 1
+    will_stop_being_active_admin = target_is_active_admin and (
+        new_role != "admin" or int(new_is_active) != 1
+    )
+
+    if will_stop_being_active_admin and admin_count <= 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível remover ou desativar o último administrador ativo",
+        )
+
     conn.execute(
         """
         UPDATE users
@@ -221,18 +245,16 @@ def delete_user(
         )
 
     user = conn.execute(
-        "SELECT id, role FROM users WHERE id = ?",
+        "SELECT id, role, is_active FROM users WHERE id = ?",
         (user_id,),
     ).fetchone()
 
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
-    admin_count = conn.execute(
-        "SELECT COUNT(*) AS total FROM users WHERE role = 'admin' AND is_active = 1"
-    ).fetchone()["total"]
+    admin_count = get_active_admin_count(conn)
 
-    if user["role"] == "admin" and admin_count <= 1:
+    if user["role"] == "admin" and int(user["is_active"]) == 1 and admin_count <= 1:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Não é possível excluir o último administrador ativo",

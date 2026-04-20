@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import FileResponse
 import mimetypes
 
+from app.auth import get_current_user
 from app.core.constants import MAX_DOWNLOAD_SIZE, MAX_PREVIEW_SIZE, SAFE_INLINE_EXTENSIONS
 from app.core.logger import logger
 from app.services.activity_service import ActivityService
@@ -44,11 +45,14 @@ def guess_media_type(full_path, filename: str) -> str:
 
 
 @router.get("/preview")
-def preview_file(path: str = Query(...)):
+def preview_file(
+    path: str = Query(...),
+    current_user: dict = Depends(get_current_user),
+):
     rel_norm, full_path, filename = file_service.safe_join_root(path)
     file_service.ensure_allowed_extension(filename, SAFE_INLINE_EXTENSIONS, "preview")
     file_service.ensure_file_size(full_path, MAX_PREVIEW_SIZE, "preview")
-    ActivityService.log("preview", filename, rel_norm)
+    ActivityService.log("preview", filename, rel_norm, current_user=current_user)
 
     media_type = guess_media_type(full_path, filename)
 
@@ -66,10 +70,13 @@ def preview_file(path: str = Query(...)):
 
 
 @router.get("/download")
-def download_file(path: str = Query(...)):
+def download_file(
+    path: str = Query(...),
+    current_user: dict = Depends(get_current_user),
+):
     rel_norm, full_path, filename = file_service.safe_join_root(path)
     file_service.ensure_file_size(full_path, MAX_DOWNLOAD_SIZE, "download")
-    ActivityService.log("download", filename, rel_norm)
+    ActivityService.log("download", filename, rel_norm, current_user=current_user)
 
     media_type = guess_media_type(full_path, filename)
 
@@ -88,11 +95,15 @@ def download_file(path: str = Query(...)):
 
 
 @router.get("/files/{file_path:path}")
-def serve_file(file_path: str, disposition: str = Query("inline")):
+def serve_file(
+    file_path: str,
+    disposition: str = Query("inline"),
+    current_user: dict = Depends(get_current_user),
+):
     rel_norm, full_path, filename = file_service.safe_join_root(file_path)
     file_service.ensure_allowed_extension(filename, SAFE_INLINE_EXTENSIONS, "visualização")
     file_service.ensure_file_size(full_path, MAX_PREVIEW_SIZE, "visualização")
-    ActivityService.log("serve_file", filename, rel_norm)
+    ActivityService.log("serve_file", filename, rel_norm, current_user=current_user)
 
     media_type = guess_media_type(full_path, filename)
 

@@ -90,6 +90,7 @@ class SearchService:
         order: str = "recent",
         ext: str = "",
         area: str = "",
+        current_user: dict | None = None,
     ):
         assert_db_root_dir()
 
@@ -133,7 +134,12 @@ class SearchService:
                 },
             }
 
-        ActivityService.log("search", None, q or f"ext:{ext} area:{area}")
+        ActivityService.log(
+            action="search",
+            filename=None,
+            rel_path=q or f"ext:{ext} area:{area}",
+            current_user=current_user,
+        )
 
         order_map = {
             "name_asc": "fm.filename COLLATE NOCASE ASC",
@@ -180,7 +186,9 @@ class SearchService:
                     using_fts = False
 
                 if not using_fts:
-                    fallback_order_sql = order_map.get(order, "fm.modified_at DESC").replace("bm25(files)", "fm.modified_at DESC")
+                    fallback_order_sql = order_map.get(order, "fm.modified_at DESC").replace(
+                        "bm25(files)", "fm.modified_at DESC"
+                    )
                     total_matches, rows = self.repository.search_like(
                         like_query=f"%{q}%",
                         like_spaced_query="%" + "%".join(q.split()) + "%",
@@ -191,12 +199,12 @@ class SearchService:
                         area=area,
                     )
 
-        except sqlite3.OperationalError:
-            logger.exception("Busca indisponível enquanto índice atualiza")
+        except sqlite3.OperationalError as exc:
+            logger.exception("Busca indisponível por erro operacional no SQLite: %s", exc)
             return {
                 "rows": [],
                 "last_query": q,
-                "error": "⚙️ Índice atualizando...",
+                "error": "Não foi possível consultar o índice agora.",
                 "meta": {
                     "total_indexed": total_indexed,
                     "query_ms": None,
@@ -242,12 +250,13 @@ class SearchService:
     def search_api(
         self,
         request,
-        query: str,
+        query: str = "",
         page: int = 1,
         page_size: int = PAGE_SIZE_DEFAULT,
         order: str = "recent",
         ext: str = "",
         area: str = "",
+        current_user: dict | None = None,
     ) -> SearchResponse:
         payload = self.search_core(
             request=request,
@@ -257,6 +266,7 @@ class SearchService:
             order=order,
             ext=ext,
             area=area,
+            current_user=current_user,
         )
 
         rows = payload["rows"]
@@ -289,6 +299,7 @@ class SearchService:
         page: int = 1,
         page_size: int = PAGE_SIZE_DEFAULT,
         order: str = "recent",
+        current_user: dict | None = None,
     ):
         payload = self.search_core(
             request=request,
@@ -296,6 +307,7 @@ class SearchService:
             page=page,
             page_size=page_size,
             order=order,
+            current_user=current_user,
         )
 
         results = self._build_results(request, payload["rows"])
