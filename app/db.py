@@ -93,6 +93,41 @@ def ensure_files_schema(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def ensure_metadata_columns(conn: sqlite3.Connection) -> None:
+    """
+    Migração idempotente: adiciona as colunas de metadados de arquivo e a
+    tabela file_tags, caso ainda não existam. Essas colunas foram adicionadas
+    manualmente (fora do código) em algum momento no banco de dev, mas nunca
+    tinham uma migração versionada — bancos criados do zero (ex: produção)
+    ficavam sem elas, causando `sqlite3.OperationalError: no such column`
+    em app/services/metadata_service.py.
+    """
+    cur = conn.cursor()
+    cols = {row["name"] for row in cur.execute("PRAGMA table_info(files_meta)")}
+    to_add = [
+        ("title", "TEXT"),
+        ("description", "TEXT"),
+        ("campaign", "TEXT"),
+        ("status", "TEXT"),
+        ("is_official", "BOOLEAN DEFAULT 0"),
+        ("metadata_updated_at", "TEXT"),
+    ]
+    for name, ddl in to_add:
+        if name not in cols:
+            cur.execute(f"ALTER TABLE files_meta ADD COLUMN {name} {ddl};")
+
+    tables = {row["name"] for row in cur.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    if "file_tags" not in tables:
+        cur.execute("""
+            CREATE TABLE file_tags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                file_id INTEGER NOT NULL REFERENCES files_meta(id) ON DELETE CASCADE,
+                tag TEXT NOT NULL
+            );
+        """)
+    conn.commit()
+
+
 def ensure_content_hash_column(conn: sqlite3.Connection) -> None:
     """Migração idempotente: adiciona files_meta.content_hash se ainda não existir."""
     cur = conn.cursor()

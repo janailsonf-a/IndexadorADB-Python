@@ -9,7 +9,7 @@ from pathlib import Path
 from watchfiles import watch
 
 from app.config import settings
-from app.db import connect, ensure_files_schema, ensure_content_hash_column
+from app.db import connect, ensure_files_schema, ensure_metadata_columns, ensure_content_hash_column
 from app.indexer import _should_ignore, _ext
 from app.utils import path_hash, content_hash_of_file
 
@@ -27,6 +27,7 @@ logger = logging.getLogger("indexador.watcher")
 def db_connect():
     conn = connect(DB_PATH)
     ensure_files_schema(conn)
+    ensure_metadata_columns(conn)
     ensure_content_hash_column(conn)
     return conn
 

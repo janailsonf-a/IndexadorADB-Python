@@ -10,6 +10,7 @@ from app.utils import path_hash, content_hash_of_file
 from app.db import (
     connect,
     ensure_files_schema,
+    ensure_metadata_columns,
     ensure_content_hash_column,
     ensure_indexer_status_table,
     set_meta,
@@ -169,6 +170,7 @@ def index_files() -> None:
     with SingleInstanceLock():
         conn = connect(DB_PATH)
         ensure_files_schema(conn)
+        ensure_metadata_columns(conn)
         ensure_content_hash_column(conn)
         ensure_indexer_status_table(conn)
         set_meta(conn, "root_dir", ROOT_DIR)
