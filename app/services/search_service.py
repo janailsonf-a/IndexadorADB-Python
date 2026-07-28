@@ -54,8 +54,24 @@ class SearchService:
 
         return items
 
+    @staticmethod
+    def _extract_bearer_token(request: object) -> str:
+        """
+        Pega o JWT cru do header Authorization pra embutir em preview_link/
+        download_link — esses links são usados em <img>/<a>/<iframe>/<audio>,
+        que nunca mandam header customizado, só o axios do app manda Bearer
+        de verdade na hora de buscar. Sem isso o navegador recebe 401 ao
+        tentar carregar qualquer preview de arquivo.
+        """
+        auth_header = getattr(request, "headers", {}).get("authorization", "") or ""
+        if auth_header.lower().startswith("bearer "):
+            return auth_header[7:]
+        return ""
+
     def _build_results(self, request: object, rows) -> list[SearchResultItem]:
         sistema = detectar_sistema(getattr(request, "headers", {}).get("user-agent", ""))
+        token = self._extract_bearer_token(request)
+        token_qs = f"&token={quote(token)}" if token else ""
         results = []
 
         for r in rows:
@@ -74,8 +90,8 @@ class SearchService:
                     size_mb=r["size_mb"],
                     created_at=r["created_at"],
                     modified_at=r["modified_at"],
-                    preview_link=f"/files/{quote(rel_path)}?disposition=inline",
-                    download_link=f"/download?path={quote(rel_path)}",
+                    preview_link=f"/files/{quote(rel_path)}?disposition=inline{token_qs}",
+                    download_link=f"/download?path={quote(rel_path)}{token_qs}",
                     title=r["title"],
                     description=r["description"],
                     campaign=r["campaign"],
