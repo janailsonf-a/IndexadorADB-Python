@@ -14,6 +14,7 @@ from app.core.logger import logger
 from app.db import (
     connect,
     ensure_files_schema,
+    ensure_metadata_columns,
     ensure_content_hash_column,
     ensure_history_table,
     ensure_indexer_status_table,
@@ -36,6 +37,7 @@ async def lifespan(app: FastAPI):
     conn = connect(DB_PATH)
     try:
         ensure_files_schema(conn)
+        ensure_metadata_columns(conn)
         ensure_content_hash_column(conn)
         ensure_history_table(conn)
         ensure_indexer_status_table(conn)
