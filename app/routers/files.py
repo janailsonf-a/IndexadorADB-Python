@@ -1,15 +1,22 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 import mimetypes
 
 from app.auth import get_current_user
-from app.core.constants import MAX_DOWNLOAD_SIZE, MAX_PREVIEW_SIZE, SAFE_INLINE_EXTENSIONS
+from app.core.constants import (
+    MAX_DOWNLOAD_SIZE,
+    MAX_PREVIEW_SIZE,
+    SAFE_INLINE_EXTENSIONS,
+    THUMB_CACHE_DIR,
+)
 from app.core.logger import logger
 from app.services.activity_service import ActivityService
 from app.services.file_service import FileService
+from app.services.thumbnail_service import ThumbnailService
 
 router = APIRouter()
 file_service = FileService()
+thumbnail_service = ThumbnailService(THUMB_CACHE_DIR)
 
 
 def guess_media_type(full_path, filename: str) -> str:
@@ -42,6 +49,43 @@ def guess_media_type(full_path, filename: str) -> str:
         media_type = fallback_map.get(ext, "application/octet-stream")
 
     return media_type
+
+
+@router.get("/api/thumbnail")
+def video_thumbnail(
+    path: str = Query(...),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Miniatura (1º quadro) de um vídeo, como JPEG pequeno e cacheado.
+    Não passa pelo limite de MAX_PREVIEW_SIZE de propósito: o ffmpeg lê o
+    arquivo local e só o JPEG gerado vai pra rede, então o tamanho do vídeo
+    original é irrelevante pro cliente.
+    """
+    rel_norm, full_path, filename = file_service.safe_join_root(path)
+
+    if not thumbnail_service.is_video(filename):
+        raise HTTPException(
+            status_code=400,
+            detail="Miniatura disponível apenas para vídeos",
+        )
+
+    thumb = thumbnail_service.get_or_create(rel_norm, full_path)
+
+    if thumb is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Não foi possível gerar a miniatura deste vídeo",
+        )
+
+    return FileResponse(
+        path=thumb,
+        media_type="image/jpeg",
+        headers={
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, max-age=86400",
+        },
+    )
 
 
 @router.get("/preview")

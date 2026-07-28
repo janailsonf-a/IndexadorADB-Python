@@ -16,6 +16,7 @@ from app.schemas.search import (
     DuplicatesResponse,
 )
 from app.services.activity_service import ActivityService
+from app.services.thumbnail_service import ThumbnailService
 
 
 class SearchService:
@@ -92,6 +93,11 @@ class SearchService:
                     modified_at=r["modified_at"],
                     preview_link=f"/files/{quote(rel_path)}?disposition=inline{token_qs}",
                     download_link=f"/download?path={quote(rel_path)}{token_qs}",
+                    thumbnail_link=(
+                        f"/api/thumbnail?path={quote(rel_path)}{token_qs}"
+                        if ThumbnailService.is_video(r["filename"])
+                        else None
+                    ),
                     title=r["title"],
                     description=r["description"],
                     campaign=r["campaign"],

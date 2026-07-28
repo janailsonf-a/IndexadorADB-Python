@@ -14,6 +14,8 @@ class SearchResultItem(BaseModel):
     modified_at: Optional[str] = None
     preview_link: Optional[str] = None
     download_link: Optional[str] = None
+    # só preenchido para vídeos — JPEG do 1º quadro, gerado por ffmpeg no backend
+    thumbnail_link: Optional[str] = None
 
     title: Optional[str] = None
     description: Optional[str] = None

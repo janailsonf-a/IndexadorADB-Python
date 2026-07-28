@@ -13,6 +13,10 @@ DB_PATH = settings.db_path
 PAGE_SIZE_DEFAULT = 20
 DISK_PATH = os.getenv("DISK_PATH", str(ROOT_DIR))
 
+# Cache de miniaturas de vídeo — fica ao lado do banco (mesmo volume persistente,
+# então sobrevive a rebuild do container)
+THUMB_CACHE_DIR = Path(DB_PATH).expanduser().resolve().parent / "thumbs"
+
 MAX_PREVIEW_SIZE = settings.max_preview_size_mb * 1024 * 1024
 MAX_DOWNLOAD_SIZE = settings.max_download_size_mb * 1024 * 1024
 

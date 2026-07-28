@@ -20,6 +20,11 @@ __pycache__/
 *.db-wal
 *.db-shm
 
+# Cache de miniaturas de vídeo (gerado por ffmpeg em runtime)
+thumbs/
+data/
+data-dev/
+
 # Logs
 *.log
 index.log
