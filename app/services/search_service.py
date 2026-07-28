@@ -8,7 +8,13 @@ from app.core.logger import logger
 from app.path_converter import PathConverter, detectar_sistema
 from app.repositories.files_repository import FilesRepository
 from app.repositories.status_repository import assert_db_root_dir, db_count_files
-from app.schemas.search import SearchMeta, SearchResponse, SearchResultItem
+from app.schemas.search import (
+    SearchMeta,
+    SearchResponse,
+    SearchResultItem,
+    DuplicateGroup,
+    DuplicatesResponse,
+)
 from app.services.activity_service import ActivityService
 
 
@@ -76,10 +82,33 @@ class SearchService:
                     status=r["status"],
                     is_official=bool(r["is_official"]),
                     tags=self._parse_tags(r["tags"]),
+                    content_hash=r["content_hash"],
                 )
             )
 
         return results
+
+    def duplicates(self, request: object, limit_groups: int = 200) -> DuplicatesResponse:
+        hash_rows = self.repository.find_duplicate_hashes(limit=limit_groups)
+        hashes = [row["content_hash"] for row in hash_rows]
+        file_rows = self.repository.files_by_content_hashes(hashes)
+        items = self._build_results(request, file_rows)
+
+        by_hash: dict[str, list[SearchResultItem]] = {}
+        for item in items:
+            by_hash.setdefault(item.content_hash, []).append(item)
+
+        groups = [
+            DuplicateGroup(content_hash=h, count=len(by_hash.get(h, [])), files=by_hash.get(h, []))
+            for h in hashes
+            if by_hash.get(h)
+        ]
+
+        return DuplicatesResponse(
+            groups=groups,
+            total_groups=len(groups),
+            total_files=sum(g.count for g in groups),
+        )
 
     def search_core(
         self,
@@ -117,7 +146,7 @@ class SearchService:
         page_size = self.clamp_int(page_size, PAGE_SIZE_DEFAULT, 5, 100)
         page = self.clamp_int(page, 1, 1, 100000)
 
-        if (not ext_query) and len(q) < 2 and not ext and not area:
+        if (not ext_query) and len(q) < 2 and not ext and not area and q:
             return {
                 "rows": [],
                 "last_query": q,

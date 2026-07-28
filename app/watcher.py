@@ -9,9 +9,9 @@ from pathlib import Path
 from watchfiles import watch
 
 from app.config import settings
-from app.db import connect, ensure_files_schema
+from app.db import connect, ensure_files_schema, ensure_content_hash_column
 from app.indexer import _should_ignore, _ext
-from app.utils import path_hash
+from app.utils import path_hash, content_hash_of_file
 
 settings.validate()
 
@@ -27,6 +27,7 @@ logger = logging.getLogger("indexador.watcher")
 def db_connect():
     conn = connect(DB_PATH)
     ensure_files_schema(conn)
+    ensure_content_hash_column(conn)
     return conn
 
 
@@ -50,9 +51,9 @@ def index_file(full_path: str, rel_path: str):
             """
             INSERT INTO files_meta (
                 filename, rel_path, ext, size_bytes, created_at, modified_at,
-                path_hash, mtime_ns, last_seen_run
+                path_hash, mtime_ns, last_seen_run, content_hash
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(rel_path) DO UPDATE SET
                 filename=excluded.filename,
                 ext=excluded.ext,
@@ -61,7 +62,8 @@ def index_file(full_path: str, rel_path: str):
                 modified_at=excluded.modified_at,
                 path_hash=excluded.path_hash,
                 mtime_ns=excluded.mtime_ns,
-                last_seen_run=excluded.last_seen_run
+                last_seen_run=excluded.last_seen_run,
+                content_hash=excluded.content_hash
             """,
             (
                 path.name,
@@ -73,6 +75,7 @@ def index_file(full_path: str, rel_path: str):
                 path_hash(rel_path),
                 getattr(stat, "st_mtime_ns", int(stat.st_mtime * 1_000_000_000)),
                 int(time.time()),
+                content_hash_of_file(full_path),
             ),
         )
         conn.commit()

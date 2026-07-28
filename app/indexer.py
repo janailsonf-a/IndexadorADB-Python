@@ -6,8 +6,14 @@ from datetime import datetime
 from typing import Dict, Tuple, Set, List
 
 from app.config import settings
-from app.utils import path_hash
-from app.db import connect, ensure_files_schema, ensure_indexer_status_table, set_meta
+from app.utils import path_hash, content_hash_of_file
+from app.db import (
+    connect,
+    ensure_files_schema,
+    ensure_content_hash_column,
+    ensure_indexer_status_table,
+    set_meta,
+)
 
 
 @dataclass
@@ -163,6 +169,7 @@ def index_files() -> None:
     with SingleInstanceLock():
         conn = connect(DB_PATH)
         ensure_files_schema(conn)
+        ensure_content_hash_column(conn)
         ensure_indexer_status_table(conn)
         set_meta(conn, "root_dir", ROOT_DIR)
 
@@ -208,8 +215,8 @@ def index_files() -> None:
                 cur.executemany(
                     """
                     INSERT INTO files_meta
-                    (filename, rel_path, ext, size_bytes, created_at, modified_at, path_hash, mtime_ns, last_seen_run)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (filename, rel_path, ext, size_bytes, created_at, modified_at, path_hash, mtime_ns, last_seen_run, content_hash)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     to_insert,
                 )
@@ -225,7 +232,8 @@ def index_files() -> None:
                         modified_at=?,
                         created_at=?,
                         mtime_ns=?,
-                        last_seen_run=?
+                        last_seen_run=?,
+                        content_hash=?
                     WHERE rel_path=?
                 """,
                     to_update,
@@ -296,6 +304,7 @@ def index_files() -> None:
                                 created_at,
                                 mtime_ns,
                                 run_id,
+                                content_hash_of_file(full_path),
                                 rel_path,
                             )
                         )
@@ -313,6 +322,7 @@ def index_files() -> None:
                             path_hash(rel_path),
                             mtime_ns,
                             run_id,
+                            content_hash_of_file(full_path),
                         )
                     )
 

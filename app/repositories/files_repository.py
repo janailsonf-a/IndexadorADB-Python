@@ -34,6 +34,7 @@ class FilesRepository:
                 fm.campaign,
                 fm.status,
                 fm.is_official,
+                fm.content_hash,
                 GROUP_CONCAT(ft.tag, ',') AS tags
             FROM files_meta fm
             LEFT JOIN file_tags ft ON ft.file_id = fm.id
@@ -54,7 +55,8 @@ class FilesRepository:
                 fm.description,
                 fm.campaign,
                 fm.status,
-                fm.is_official
+                fm.is_official,
+                fm.content_hash
         """
 
     def search_by_extension(
@@ -213,6 +215,7 @@ class FilesRepository:
                     fm.campaign,
                     fm.status,
                     fm.is_official,
+                    fm.content_hash,
                     GROUP_CONCAT(ft.tag, ',') AS tags
                 FROM files
                 JOIN files_meta fm ON fm.id = files.rowid
@@ -230,7 +233,8 @@ class FilesRepository:
                     fm.description,
                     fm.campaign,
                     fm.status,
-                    fm.is_official
+                    fm.is_official,
+                    fm.content_hash
                 ORDER BY {order_sql}
                 LIMIT ? OFFSET ?
             """
@@ -238,5 +242,38 @@ class FilesRepository:
             total = conn.execute(count_sql, params).fetchone()[0]
             rows = conn.execute(data_sql, params + [limit, offset]).fetchall()
             return total, rows
+        finally:
+            conn.close()
+
+    def find_duplicate_hashes(self, limit: int = 200) -> List[sqlite3.Row]:
+        """Hashes de conteúdo com mais de 1 arquivo, maiores grupos primeiro."""
+        conn = self._connect()
+        try:
+            sql = """
+                SELECT content_hash, COUNT(*) AS qty
+                FROM files_meta
+                WHERE content_hash IS NOT NULL AND content_hash != '' AND size_bytes > 0
+                GROUP BY content_hash
+                HAVING COUNT(*) > 1
+                ORDER BY qty DESC
+                LIMIT ?
+            """
+            return conn.execute(sql, (limit,)).fetchall()
+        finally:
+            conn.close()
+
+    def files_by_content_hashes(self, hashes: List[str]) -> List[sqlite3.Row]:
+        if not hashes:
+            return []
+        conn = self._connect()
+        try:
+            placeholders = ",".join("?" for _ in hashes)
+            sql = f"""
+                {self._base_select_sql()}
+                WHERE fm.content_hash IN ({placeholders})
+                {self._group_by_sql()}
+                ORDER BY fm.content_hash, fm.modified_at DESC
+            """
+            return conn.execute(sql, hashes).fetchall()
         finally:
             conn.close()

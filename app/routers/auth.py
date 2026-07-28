@@ -6,9 +6,9 @@ from pydantic import BaseModel, EmailStr
 
 from app.auth import verify_password, create_access_token, get_current_user
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+from app.core.constants import DB_PATH
 
-DB_PATH = Path("/app/data/file_index.db")
+router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 class LoginRequest(BaseModel):

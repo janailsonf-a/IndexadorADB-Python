@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlite3 import Connection
 
-from app.auth import get_current_user, require_admin
+from app.auth import get_current_user, require_editor
 from app.db import get_db
 from app.schemas.metadata import FileMetadataResponse, FileMetadataUpdate
 from app.services.metadata_service import (
@@ -30,7 +30,7 @@ def save_file_metadata(
     file_id: int,
     payload: FileMetadataUpdate,
     conn: Connection = Depends(get_db),
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_editor),
 ):
     updated = update_file_metadata(conn, file_id, payload.model_dump(exclude_unset=True))
     if not updated:

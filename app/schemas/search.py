@@ -21,6 +21,19 @@ class SearchResultItem(BaseModel):
     status: Optional[str] = None
     is_official: bool = False
     tags: List[str] = Field(default_factory=list)
+    content_hash: Optional[str] = None
+
+
+class DuplicateGroup(BaseModel):
+    content_hash: str
+    count: int
+    files: List[SearchResultItem] = Field(default_factory=list)
+
+
+class DuplicatesResponse(BaseModel):
+    groups: List[DuplicateGroup] = Field(default_factory=list)
+    total_groups: int = 0
+    total_files: int = 0
 
 
 class SearchMeta(BaseModel):

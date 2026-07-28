@@ -2,11 +2,16 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from app.auth import get_current_user
 from app.core.constants import PAGE_SIZE_DEFAULT
-from app.schemas.search import SearchResponse
+from app.schemas.search import SearchResponse, DuplicatesResponse
 from app.services.search_service import SearchService
 
 router = APIRouter(prefix="/api", tags=["api-search"])
 search_service = SearchService()
+
+
+@router.get("/duplicates", response_model=DuplicatesResponse)
+async def api_duplicates(request: Request, limit_groups: int = Query(default=200, ge=1, le=1000)):
+    return search_service.duplicates(request=request, limit_groups=limit_groups)
 
 
 @router.get("/search", response_model=SearchResponse)
