@@ -93,6 +93,18 @@ def ensure_files_schema(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def ensure_content_hash_column(conn: sqlite3.Connection) -> None:
+    """Migração idempotente: adiciona files_meta.content_hash se ainda não existir."""
+    cur = conn.cursor()
+    cols = {row["name"] for row in cur.execute("PRAGMA table_info(files_meta)")}
+    if "content_hash" not in cols:
+        cur.execute("ALTER TABLE files_meta ADD COLUMN content_hash TEXT;")
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_files_meta_content_hash ON files_meta(content_hash);"
+    )
+    conn.commit()
+
+
 def ensure_history_table(conn: sqlite3.Connection) -> None:
     cur = conn.cursor()
     cur.execute("""
@@ -144,7 +156,7 @@ def get_meta(conn: sqlite3.Connection, key: str) -> Optional[str]:
 
 
 def get_db():
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
     try:

@@ -64,3 +64,12 @@ def require_admin(user: dict = Depends(get_current_user)) -> dict:
             detail="Apenas administradores podem executar esta ação",
         )
     return user
+
+
+def require_editor(user: dict = Depends(get_current_user)) -> dict:
+    if user.get("role") not in ("admin", "user"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas editores ou administradores podem executar esta ação",
+        )
+    return user
