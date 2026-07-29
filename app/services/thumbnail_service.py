@@ -10,6 +10,7 @@ devolve um JPEG de ~20KB, cacheado — o cliente baixa só isso.
 
 import hashlib
 import subprocess
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -19,6 +20,16 @@ VIDEO_EXTENSIONS = {"mp4", "webm", "mov", "mkv", "avi", "wmv", "m4v", "mpg", "mp
 
 THUMB_WIDTH = 400
 FFMPEG_TIMEOUT_SEC = 30
+
+# O acervo é ~83% vídeo, então uma página de 50 cards dispara dezenas de
+# pedidos de miniatura de uma vez. Sem limite, seriam dezenas de ffmpeg
+# simultâneos lendo arquivos de centenas de MB — o servidor não aguenta.
+# Miniatura em fila é aceitável; servidor no chão não.
+MAX_CONCURRENT_FFMPEG = 3
+_ffmpeg_slots = threading.Semaphore(MAX_CONCURRENT_FFMPEG)
+# Espera na fila: se estourar, é melhor devolver erro (o card cai no ícone)
+# do que segurar a conexão indefinidamente.
+FFMPEG_QUEUE_TIMEOUT_SEC = 25
 
 
 class ThumbnailService:
@@ -86,10 +97,21 @@ class ThumbnailService:
 
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-        # 1s pra frente evita o quadro preto/fade-in comum no início; se o vídeo
-        # for mais curto que isso, o seek falha e caímos pro quadro 0.
-        for seek in (1.0, 0.0):
-            if self._run_ffmpeg(source, cache_path, seek):
+        if not _ffmpeg_slots.acquire(timeout=FFMPEG_QUEUE_TIMEOUT_SEC):
+            logger.warning("fila de ffmpeg cheia, desistindo da miniatura de %s", source)
+            return None
+
+        try:
+            # outro request pode ter gerado enquanto esperávamos na fila
+            if self._is_cache_fresh(cache_path, source):
                 return cache_path
+
+            # 1s pra frente evita o quadro preto/fade-in comum no início; se o
+            # vídeo for mais curto que isso, o seek falha e caímos pro quadro 0.
+            for seek in (1.0, 0.0):
+                if self._run_ffmpeg(source, cache_path, seek):
+                    return cache_path
+        finally:
+            _ffmpeg_slots.release()
 
         return None
