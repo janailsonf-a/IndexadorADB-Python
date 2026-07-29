@@ -6,6 +6,7 @@ from app.auth import get_current_user
 from app.core.constants import (
     MAX_DOWNLOAD_SIZE,
     MAX_PREVIEW_SIZE,
+    MAX_VIDEO_PREVIEW_SIZE,
     SAFE_INLINE_EXTENSIONS,
     THUMB_CACHE_DIR,
 )
@@ -17,6 +18,12 @@ from app.services.thumbnail_service import ThumbnailService
 router = APIRouter()
 file_service = FileService()
 thumbnail_service = ThumbnailService(THUMB_CACHE_DIR)
+
+
+def size_limit_for(filename: str) -> int:
+    """Vídeo é servido por streaming (206/Range), então tem folga muito maior
+    que imagem/PDF, que o navegador baixa inteiro."""
+    return MAX_VIDEO_PREVIEW_SIZE if thumbnail_service.is_video(filename) else MAX_PREVIEW_SIZE
 
 
 def guess_media_type(full_path, filename: str) -> str:
@@ -95,7 +102,7 @@ def preview_file(
 ):
     rel_norm, full_path, filename = file_service.safe_join_root(path)
     file_service.ensure_allowed_extension(filename, SAFE_INLINE_EXTENSIONS, "preview")
-    file_service.ensure_file_size(full_path, MAX_PREVIEW_SIZE, "preview")
+    file_service.ensure_file_size(full_path, size_limit_for(filename), "preview")
     ActivityService.log("preview", filename, rel_norm, current_user=current_user)
 
     media_type = guess_media_type(full_path, filename)
@@ -146,7 +153,7 @@ def serve_file(
 ):
     rel_norm, full_path, filename = file_service.safe_join_root(file_path)
     file_service.ensure_allowed_extension(filename, SAFE_INLINE_EXTENSIONS, "visualização")
-    file_service.ensure_file_size(full_path, MAX_PREVIEW_SIZE, "visualização")
+    file_service.ensure_file_size(full_path, size_limit_for(filename), "visualização")
     ActivityService.log("serve_file", filename, rel_norm, current_user=current_user)
 
     media_type = guess_media_type(full_path, filename)
