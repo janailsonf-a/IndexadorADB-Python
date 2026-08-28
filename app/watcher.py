@@ -11,7 +11,7 @@ from watchfiles import watch
 from app.config import settings
 from app.db import connect, ensure_files_schema, ensure_metadata_columns, ensure_content_hash_column
 from app.indexer import _should_ignore, _ext
-from app.utils import path_hash, content_hash_of_file
+from app.utils import path_hash, content_hash_of_file, should_hash_content
 
 settings.validate()
 
@@ -76,7 +76,7 @@ def index_file(full_path: str, rel_path: str):
                 path_hash(rel_path),
                 getattr(stat, "st_mtime_ns", int(stat.st_mtime * 1_000_000_000)),
                 int(time.time()),
-                content_hash_of_file(full_path),
+                content_hash_of_file(full_path) if should_hash_content(rel_path) else "",
             ),
         )
         conn.commit()

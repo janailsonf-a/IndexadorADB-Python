@@ -7,11 +7,18 @@ services:
       - "9102:9100"
     env_file:
       - .env
+    environment:
+      # Nao calcular SHA-256 do conteudo em montagem de rede (leria tudo via CIFS,
+      # horas de trafego). Esses arquivos ficam com content_hash vazio.
+      - HASH_SKIP_PREFIXES=_winmkt
     volumes:
       - .:/app
       - ./logs:/app/logs
       - ./data:/app/data
       - /mnt/share/:/data/indexados
+      # Servidor de midias .78 (CIFS, ja montado no host em /mnt/winmkt).
+      # ':ro' garante que nada no Noxis consiga escrever/apagar la.
+      - /mnt/winmkt:/data/indexados/_winmkt:ro
     restart: unless-stopped
 
   indexer:
@@ -20,9 +27,16 @@ services:
     command: /app/scripts/run_indexer.sh
     env_file:
       - .env
+    environment:
+      # Nao calcular SHA-256 do conteudo em montagem de rede (leria tudo via CIFS,
+      # horas de trafego). Esses arquivos ficam com content_hash vazio.
+      - HASH_SKIP_PREFIXES=_winmkt
     volumes:
       - .:/app
       - ./logs:/app/logs
       - ./data:/app/data
       - /mnt/share/:/data/indexados
+      # Servidor de midias .78 (CIFS, ja montado no host em /mnt/winmkt).
+      # ':ro' garante que nada no Noxis consiga escrever/apagar la.
+      - /mnt/winmkt:/data/indexados/_winmkt:ro
     restart: unless-stopped

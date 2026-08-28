@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Dict, Tuple, Set, List
 
 from app.config import settings
-from app.utils import path_hash, content_hash_of_file
+from app.utils import path_hash, content_hash_of_file, should_hash_content
 from app.db import (
     connect,
     ensure_files_schema,
@@ -306,7 +306,7 @@ def index_files() -> None:
                                 created_at,
                                 mtime_ns,
                                 run_id,
-                                content_hash_of_file(full_path),
+                                content_hash_of_file(full_path) if should_hash_content(rel_path) else "",
                                 rel_path,
                             )
                         )
@@ -324,7 +324,7 @@ def index_files() -> None:
                             path_hash(rel_path),
                             mtime_ns,
                             run_id,
-                            content_hash_of_file(full_path),
+                            content_hash_of_file(full_path) if should_hash_content(rel_path) else "",
                         )
                     )
 
