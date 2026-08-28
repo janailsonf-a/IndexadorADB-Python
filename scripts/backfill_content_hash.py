@@ -11,7 +11,7 @@ import time
 
 from app.core.constants import DB_PATH, ROOT_DIR
 from app.db import connect, ensure_files_schema, ensure_content_hash_column
-from app.utils import content_hash_of_file
+from app.utils import content_hash_of_file, should_hash_content
 
 BATCH_SIZE = 500
 
@@ -29,6 +29,7 @@ def backfill() -> None:
 
     done = 0
     unreadable = 0
+    skipped = 0
     t0 = time.time()
 
     while True:
@@ -41,6 +42,11 @@ def backfill() -> None:
 
         updates = []
         for row in rows:
+            # subárvore de rede marcada como 'não hashear': grava "" sem ler o arquivo
+            if not should_hash_content(row["rel_path"]):
+                skipped += 1
+                updates.append(("", row["id"]))
+                continue
             full_path = os.path.join(ROOT_DIR, row["rel_path"])
             h = content_hash_of_file(full_path)
             if h is None:
@@ -60,7 +66,7 @@ def backfill() -> None:
         print(f"  {done:,}/{total:,} ({speed:.0f} arquivos/s)".replace(",", "."))
 
     conn.close()
-    print(f"Concluído. {unreadable} arquivo(s) ilegível(is)/ausente(s) marcado(s) sem hash.")
+    print(f"Concluído. {unreadable} ilegível(is)/ausente(s) e {skipped} em subárvore de rede — marcados sem hash.")
 
 
 if __name__ == "__main__":
