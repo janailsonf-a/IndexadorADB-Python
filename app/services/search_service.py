@@ -141,6 +141,10 @@ class SearchService:
         order: str = "recent",
         ext: str = "",
         area: str = "",
+        campaign: str = "",
+        date_from: str = "",
+        date_to: str = "",
+        exts: str = "",
         current_user: dict | None = None,
     ):
         assert_db_root_dir()
@@ -218,6 +222,10 @@ class SearchService:
                     limit=page_size,
                     offset=offset,
                     area=area,
+                    campaign=campaign,
+                    date_from=date_from,
+                    date_to=date_to,
+                    exts=exts,
                 )
             else:
                 tokens = "".join([ch if ch.isalnum() else " " for ch in q_lower]).split()
@@ -231,6 +239,10 @@ class SearchService:
                         offset=offset,
                         ext=ext,
                         area=area,
+                        campaign=campaign,
+                        date_from=date_from,
+                        date_to=date_to,
+                        exts=exts,
                     )
                     using_fts = total_matches > 0
                 except sqlite3.OperationalError:
@@ -248,6 +260,10 @@ class SearchService:
                         offset=offset,
                         ext=ext,
                         area=area,
+                        campaign=campaign,
+                        date_from=date_from,
+                        date_to=date_to,
+                        exts=exts,
                     )
 
         except sqlite3.OperationalError as exc:
@@ -307,6 +323,10 @@ class SearchService:
         order: str = "recent",
         ext: str = "",
         area: str = "",
+        campaign: str = "",
+        date_from: str = "",
+        date_to: str = "",
+        exts: str = "",
         current_user: dict | None = None,
     ) -> SearchResponse:
         payload = self.search_core(
@@ -317,6 +337,10 @@ class SearchService:
             order=order,
             ext=ext,
             area=area,
+            campaign=campaign,
+            date_from=date_from,
+            date_to=date_to,
+            exts=exts,
             current_user=current_user,
         )
 

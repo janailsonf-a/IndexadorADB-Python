@@ -59,6 +59,46 @@ class FilesRepository:
                 fm.content_hash
         """
 
+
+    @staticmethod
+    def _extra_filters(campaign: str = "", date_from: str = "", date_to: str = "",
+                       exts: str = "") -> Tuple[List[str], list]:
+        """
+        Filtros opcionais compartilhados pelos tres modos de busca (extensao,
+        LIKE e FTS). Antes campanha/data/tipo eram filtrados no navegador, sobre
+        a lista ja carregada — com a galeria paginada isso passou a filtrar so os
+        50 itens da pagina atual, entao um filtro de 2023 na pagina 1 (que so tem
+        2026) devolvia "nenhum arquivo".
+        """
+        where: List[str] = []
+        params: list = []
+
+        if campaign:
+            where.append("COALESCE(fm.campaign, '') = ?")
+            params.append(campaign)
+
+        # modified_at e created_at sao TEXT no formato "YYYY-MM-DD HH:MM".
+        # Comparar so os 10 primeiros caracteres evita o off-by-one de
+        # "2023-12-31 14:30" > "2023-12-31" excluir o proprio dia final.
+        date_col = "substr(COALESCE(fm.modified_at, fm.created_at, ''), 1, 10)"
+        if date_from:
+            where.append(f"{date_col} >= ?")
+            params.append(date_from)
+        if date_to:
+            where.append(f"{date_col} <= ?")
+            params.append(date_to)
+
+        # lista de extensoes da categoria escolhida (imagens, videos...). O
+        # mapeamento categoria->extensoes vive no front (useFileType), que manda
+        # as extensoes ja resolvidas — evita duplicar a tabela aqui.
+        ext_list = [e.strip().lower().lstrip(".") for e in (exts or "").split(",") if e.strip()]
+        if ext_list:
+            marks = ",".join("?" for _ in ext_list)
+            where.append(f"LOWER(COALESCE(fm.ext, '')) IN ({marks})")
+            params.extend(ext_list)
+
+        return where, params
+
     def search_by_extension(
         self,
         ext_query: str,
@@ -66,6 +106,10 @@ class FilesRepository:
         limit: int,
         offset: int,
         area: str = "",
+        campaign: str = "",
+        date_from: str = "",
+        date_to: str = "",
+        exts: str = "",
     ) -> Tuple[int, List[sqlite3.Row]]:
         conn = self._connect()
         try:
@@ -75,6 +119,10 @@ class FilesRepository:
             if area:
                 where.append(f"{self._area_sql()} = ?")
                 params.append(area.lower())
+
+            extra_where, extra_params = self._extra_filters(campaign, date_from, date_to, exts)
+            where.extend(extra_where)
+            params.extend(extra_params)
 
             where_sql = " AND ".join(where)
 
@@ -108,6 +156,10 @@ class FilesRepository:
         offset: int,
         ext: str = "",
         area: str = "",
+        campaign: str = "",
+        date_from: str = "",
+        date_to: str = "",
+        exts: str = "",
     ) -> Tuple[int, List[sqlite3.Row]]:
         conn = self._connect()
         try:
@@ -146,6 +198,10 @@ class FilesRepository:
                 where.append(f"{self._area_sql()} = ?")
                 params.append(area.lower())
 
+            extra_where, extra_params = self._extra_filters(campaign, date_from, date_to, exts)
+            where.extend(extra_where)
+            params.extend(extra_params)
+
             where_sql = " AND ".join(where)
 
             count_sql = f"""
@@ -177,6 +233,10 @@ class FilesRepository:
         offset: int,
         ext: str = "",
         area: str = "",
+        campaign: str = "",
+        date_from: str = "",
+        date_to: str = "",
+        exts: str = "",
     ) -> Tuple[int, List[sqlite3.Row]]:
         conn = self._connect()
         try:
@@ -190,6 +250,10 @@ class FilesRepository:
             if area:
                 where.append(f"{self._area_sql()} = ?")
                 params.append(area.lower())
+
+            extra_where, extra_params = self._extra_filters(campaign, date_from, date_to, exts)
+            where.extend(extra_where)
+            params.extend(extra_params)
 
             where_sql = " AND ".join(where)
 
