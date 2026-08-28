@@ -23,6 +23,10 @@ async def api_search(
     order: str = Query(default="recent"),
     ext: str = Query(default=""),
     area: str = Query(default=""),
+    campaign: str = Query(default=""),
+    date_from: str = Query(default="", description="Data inicial YYYY-MM-DD (inclusiva)"),
+    date_to: str = Query(default="", description="Data final YYYY-MM-DD (inclusiva)"),
+    exts: str = Query(default="", description="Extensoes separadas por virgula, ex: jpg,png,webp"),
     current_user: dict = Depends(get_current_user),
 ):
     return search_service.search_api(
@@ -33,5 +37,9 @@ async def api_search(
         order=order,
         ext=ext,
         area=area,
+        campaign=campaign,
+        date_from=date_from,
+        date_to=date_to,
+        exts=exts,
         current_user=current_user,
     )
