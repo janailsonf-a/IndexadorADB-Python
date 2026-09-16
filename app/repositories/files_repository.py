@@ -309,6 +309,53 @@ class FilesRepository:
         finally:
             conn.close()
 
+    def list_all(
+        self,
+        order_sql: str,
+        limit: int,
+        offset: int,
+    ) -> List[sqlite3.Row]:
+        """
+        Navegação do Acervo sem filtro (query vazia). Evita o caminho do
+        search_like com `LIKE '%%'`, que fazia 14 comparações LIKE + COUNT
+        DISTINCT + GROUP BY sobre ~2.18M linhas a cada abertura (~2.8s).
+
+        Aqui: varre files_meta pela coluna ordenada (indexada), pega só a
+        página (LIMIT/OFFSET) e busca as tags dessas ≤50 linhas por subquery
+        correlacionada — nada de JOIN + GROUP BY sobre a tabela inteira. O
+        total vem do count cacheado (db_count_files), já que sem filtro o
+        total de resultados é o total de arquivos.
+        """
+        conn = self._connect()
+        try:
+            data_sql = f"""
+                SELECT
+                    fm.id,
+                    fm.filename,
+                    fm.rel_path,
+                    fm.ext,
+                    ROUND(fm.size_bytes / 1024.0 / 1024.0, 2) AS size_mb,
+                    fm.created_at,
+                    fm.modified_at,
+                    fm.title,
+                    fm.description,
+                    fm.campaign,
+                    fm.status,
+                    fm.is_official,
+                    fm.content_hash,
+                    (
+                        SELECT GROUP_CONCAT(ft.tag, ',')
+                        FROM file_tags ft
+                        WHERE ft.file_id = fm.id
+                    ) AS tags
+                FROM files_meta fm
+                ORDER BY {order_sql}
+                LIMIT ? OFFSET ?
+            """
+            return conn.execute(data_sql, [limit, offset]).fetchall()
+        finally:
+            conn.close()
+
     def find_duplicate_hashes(self, limit: int = 200) -> List[sqlite3.Row]:
         """Hashes de conteúdo com mais de 1 arquivo, maiores grupos primeiro."""
         conn = self._connect()

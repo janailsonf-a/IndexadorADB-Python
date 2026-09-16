@@ -12,7 +12,7 @@ search_service = SearchService()
 
 
 @router.get("/", response_class=HTMLResponse)
-async def home(
+def home(
     request: Request,
     query: str = Query(""),
     page: int = Query(1),
@@ -50,7 +50,7 @@ async def home(
 
 
 @router.get("/search", response_class=HTMLResponse)
-async def search(
+def search(
     request: Request,
     query: str = Query(...),
     page: int = Query(1),

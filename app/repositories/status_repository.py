@@ -22,13 +22,31 @@ def assert_db_root_dir():
         raise HTTPException(500, "ROOT_DIR diferente do indexado. Ajuste o .env e reindexe.")
 
 
+_count_cache = {"value": 0, "ts": 0.0}
+_COUNT_TTL_SEC = 30.0
+
+
 def db_count_files() -> int:
+    """
+    Total de arquivos indexados. É chamado a cada busca (para o rodapé de
+    "X arquivos indexados"); em 2.18M linhas o `count(1)` custa caro, então
+    cacheia por _COUNT_TTL_SEC. O número muda devagar (indexer roda em lote),
+    30s de defasagem é irrelevante para a UI.
+    """
+    now = time.time()
+    if _count_cache["value"] and (now - _count_cache["ts"]) < _COUNT_TTL_SEC:
+        return _count_cache["value"]
+
     conn = db_connect()
     try:
         row = conn.execute("SELECT count(1) c FROM files_meta").fetchone()
-        return int(row["c"]) if row else 0
+        value = int(row["c"]) if row else 0
     finally:
         conn.close()
+
+    _count_cache["value"] = value
+    _count_cache["ts"] = now
+    return value
 
 
 def get_indexer_status_data():

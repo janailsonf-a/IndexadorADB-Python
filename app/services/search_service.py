@@ -189,12 +189,29 @@ class SearchService:
                 },
             }
 
-        ActivityService.log(
-            action="search",
-            filename=None,
-            rel_path=q or f"ext:{ext} area:{area}",
-            current_user=current_user,
+        # Navegação sem filtro (Acervo aberto, sem texto nem filtros): caminho
+        # rápido indexado, sem LIKE '%%'/COUNT sobre 2.18M linhas.
+        is_browse = (
+            not q
+            and not ext_query
+            and not ext
+            and not area
+            and not campaign
+            and not date_from
+            and not date_to
+            and not exts
         )
+
+        # Só registra atividade em busca de verdade — não a cada abertura do
+        # Acervo (era uma escrita no DB por page-load, disputando lock com o
+        # indexer e enchendo o feed de "buscas" vazias).
+        if not is_browse:
+            ActivityService.log(
+                action="search",
+                filename=None,
+                rel_path=q or f"ext:{ext} area:{area}",
+                current_user=current_user,
+            )
 
         order_map = {
             "name_asc": "fm.filename COLLATE NOCASE ASC",
@@ -215,7 +232,17 @@ class SearchService:
             total_matches = 0
             using_fts = False
 
-            if ext_query:
+            if is_browse:
+                browse_order = order_map.get(order, "fm.modified_at DESC").replace(
+                    "bm25(files)", "fm.modified_at DESC"
+                )
+                total_matches = total_indexed
+                rows = self.repository.list_all(
+                    order_sql=browse_order,
+                    limit=page_size,
+                    offset=offset,
+                )
+            elif ext_query:
                 total_matches, rows = self.repository.search_by_extension(
                     ext_query=ext_query,
                     order_sql=order_map.get(order, "fm.modified_at DESC").replace("bm25(files)", "fm.modified_at DESC"),
