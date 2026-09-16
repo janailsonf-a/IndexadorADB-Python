@@ -31,6 +31,9 @@ services:
       # Nao calcular SHA-256 do conteudo em montagem de rede (leria tudo via CIFS,
       # horas de trafego). Esses arquivos ficam com content_hash vazio.
       - HASH_SKIP_PREFIXES=_winmkt
+      # Hora do dia p/ rodar a indexacao (fora do expediente). Container em UTC
+      # + galpao UTC-3 => 5 = ~02:00 local. Ver scripts/run_indexer.sh.
+      - INDEXER_HOUR=5
     volumes:
       - .:/app
       - ./logs:/app/logs
