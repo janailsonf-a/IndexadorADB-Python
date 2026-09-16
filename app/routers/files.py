@@ -112,9 +112,14 @@ def preview_file(
     return FileResponse(
         path=full_path,
         media_type=media_type,
+        # filename= deixa o Starlette montar o Content-Disposition com
+        # filename*=utf-8'' (RFC 5987) quando o nome tem char fora do latin-1.
+        # Montar o header na mão quebrava (UnicodeEncodeError -> 500) em nomes
+        # com acento combinante, ex. cedilha ̧ ("distribuição").
+        filename=filename,
+        content_disposition_type="inline",
         headers={
             "X-Content-Type-Options": "nosniff",
-            "Content-Disposition": f'inline; filename="{filename}"',
             "Cache-Control": "no-store",
         },
     )
@@ -175,9 +180,14 @@ def serve_file(
     return FileResponse(
         path=full_path,
         media_type=media_type,
+        # filename= deixa o Starlette montar o Content-Disposition com
+        # filename*=utf-8'' (RFC 5987) quando o nome tem char fora do latin-1.
+        # Montar o header na mão quebrava (UnicodeEncodeError -> 500) em nomes
+        # com acento combinante, ex. cedilha ̧ ("distribuição").
+        filename=filename,
+        content_disposition_type="inline",
         headers={
             "X-Content-Type-Options": "nosniff",
-            "Content-Disposition": f'inline; filename="{filename}"',
             "Cache-Control": "no-store",
         },
     )

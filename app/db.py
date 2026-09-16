@@ -206,9 +206,15 @@ def get_meta(conn: sqlite3.Connection, key: str) -> Optional[str]:
 
 
 def get_db():
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+    # Alinhado com connect()/db_connect(): WAL + busy_timeout p/ não dar
+    # "database is locked" sob concorrência com o indexer (antes esta conexão
+    # não tinha nenhum, era a única fora do padrão).
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    conn.execute("PRAGMA busy_timeout=10000;")
     try:
         yield conn
     finally:
