@@ -10,7 +10,7 @@ search_service = SearchService()
 
 
 @router.get("/duplicates", response_model=DuplicatesResponse)
-async def api_duplicates(
+def api_duplicates(
     request: Request,
     limit_groups: int = Query(default=200, ge=1, le=1000),
     current_user: dict = Depends(get_current_user),
@@ -19,7 +19,7 @@ async def api_duplicates(
 
 
 @router.get("/search", response_model=SearchResponse)
-async def api_search(
+def api_search(
     request: Request,
     query: str = Query(default=""),
     page: int = Query(default=1, ge=1),

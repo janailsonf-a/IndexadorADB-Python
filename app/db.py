@@ -60,6 +60,15 @@ def ensure_files_schema(conn: sqlite3.Connection) -> None:
     cur.execute(
         "CREATE INDEX IF NOT EXISTS idx_files_meta_mtime_ns ON files_meta(mtime_ns);"
     )
+    # Índices para ORDER BY da navegação/busca. Sem eles, "recent"/"oldest"
+    # (fm.modified_at) fazia full-scan + sort de ~2.18M linhas a cada abertura
+    # do Acervo (~2.8s). Idempotentes: criados no boot.
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_files_meta_modified_at ON files_meta(modified_at);"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_files_meta_created_at ON files_meta(created_at);"
+    )
 
     # FTS5 sincronizado com content=files_meta
     cur.execute("""
@@ -125,6 +134,12 @@ def ensure_metadata_columns(conn: sqlite3.Connection) -> None:
                 tag TEXT NOT NULL
             );
         """)
+
+    # Índice para o JOIN/subquery de tags por arquivo (fora do if: garante o
+    # índice mesmo em bancos que já tinham a tabela).
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_file_tags_file_id ON file_tags(file_id);"
+    )
     conn.commit()
 
 
