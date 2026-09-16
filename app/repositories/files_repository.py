@@ -3,6 +3,33 @@ from typing import Tuple, List
 
 from app.core.constants import DB_PATH
 
+# Teto do COUNT das buscas por texto. Contar exato (COUNT(DISTINCT) sobre a
+# tabela inteira) era metade do custo da busca. Aqui contamos só até este teto
+# (LIMIT dentro do count) — para termos frequentes o count para cedo; a UI
+# mostra "N" ou "N+" e pagina até este limite. Navegação sem filtro não usa isto
+# (usa o total real cacheado, ver SearchService.is_browse + list_all).
+COUNT_CAP = 2000
+
+# Colunas retornadas por todas as buscas. Tags vêm por subquery correlacionada
+# (só as <=50 linhas da página), em vez de LEFT JOIN file_tags + GROUP BY sobre
+# todos os matches — o JOIN explodia linhas e forçava agrupamento caro.
+_SELECT_COLS = """
+    fm.id,
+    fm.filename,
+    fm.rel_path,
+    fm.ext,
+    ROUND(fm.size_bytes / 1024.0 / 1024.0, 2) AS size_mb,
+    fm.created_at,
+    fm.modified_at,
+    fm.title,
+    fm.description,
+    fm.campaign,
+    fm.status,
+    fm.is_official,
+    fm.content_hash,
+    (SELECT GROUP_CONCAT(t.tag, ',') FROM file_tags t WHERE t.file_id = fm.id) AS tags
+"""
+
 
 class FilesRepository:
     def __init__(self):
@@ -20,45 +47,21 @@ class FilesRepository:
 
     @staticmethod
     def _base_select_sql() -> str:
-        return """
+        return f"""
             SELECT
-                fm.id,
-                fm.filename,
-                fm.rel_path,
-                fm.ext,
-                ROUND(fm.size_bytes / 1024.0 / 1024.0, 2) AS size_mb,
-                fm.created_at,
-                fm.modified_at,
-                fm.title,
-                fm.description,
-                fm.campaign,
-                fm.status,
-                fm.is_official,
-                fm.content_hash,
-                GROUP_CONCAT(ft.tag, ',') AS tags
+                {_SELECT_COLS}
             FROM files_meta fm
-            LEFT JOIN file_tags ft ON ft.file_id = fm.id
         """
 
     @staticmethod
-    def _group_by_sql() -> str:
-        return """
-            GROUP BY
-                fm.id,
-                fm.filename,
-                fm.rel_path,
-                fm.ext,
-                fm.size_bytes,
-                fm.created_at,
-                fm.modified_at,
-                fm.title,
-                fm.description,
-                fm.campaign,
-                fm.status,
-                fm.is_official,
-                fm.content_hash
+    def _capped_count(conn: sqlite3.Connection, inner_sql: str, params: list) -> int:
         """
-
+        Conta até COUNT_CAP linhas de inner_sql (que deve ser um SELECT sem
+        ORDER BY). Evita o COUNT(DISTINCT) full-scan: para assim que atinge o
+        teto. Retorna o número real quando < teto.
+        """
+        sql = f"SELECT COUNT(*) FROM ({inner_sql} LIMIT {COUNT_CAP})"
+        return conn.execute(sql, params).fetchone()[0]
 
     @staticmethod
     def _extra_filters(campaign: str = "", date_from: str = "", date_to: str = "",
@@ -99,6 +102,31 @@ class FilesRepository:
 
         return where, params
 
+    def list_all(
+        self,
+        order_sql: str,
+        limit: int,
+        offset: int,
+    ) -> List[sqlite3.Row]:
+        """
+        Navegação do Acervo sem filtro (query vazia). Varre files_meta pela
+        coluna ordenada (indexada) e pega só a página; tags por subquery das
+        <=50 linhas. O total vem do count cacheado (sem filtro, total de
+        resultados = total de arquivos).
+        """
+        conn = self._connect()
+        try:
+            data_sql = f"""
+                SELECT
+                    {_SELECT_COLS}
+                FROM files_meta fm
+                ORDER BY {order_sql}
+                LIMIT ? OFFSET ?
+            """
+            return conn.execute(data_sql, [limit, offset]).fetchall()
+        finally:
+            conn.close()
+
     def search_by_extension(
         self,
         ext_query: str,
@@ -126,22 +154,18 @@ class FilesRepository:
 
             where_sql = " AND ".join(where)
 
-            count_sql = f"""
-                SELECT COUNT(DISTINCT fm.id)
-                FROM files_meta fm
-                LEFT JOIN file_tags ft ON ft.file_id = fm.id
-                WHERE {where_sql}
-            """
+            total = self._capped_count(
+                conn, f"SELECT 1 FROM files_meta fm WHERE {where_sql}", params
+            )
 
             data_sql = f"""
-                {self._base_select_sql()}
+                SELECT
+                    {_SELECT_COLS}
+                FROM files_meta fm
                 WHERE {where_sql}
-                {self._group_by_sql()}
                 ORDER BY {order_sql}
                 LIMIT ? OFFSET ?
             """
-
-            total = conn.execute(count_sql, params).fetchone()[0]
             rows = conn.execute(data_sql, params + [limit, offset]).fetchall()
             return total, rows
         finally:
@@ -163,6 +187,8 @@ class FilesRepository:
     ) -> Tuple[int, List[sqlite3.Row]]:
         conn = self._connect()
         try:
+            # Tag por EXISTS (não JOIN) p/ não explodir linhas. Dois grupos:
+            # termo cru e termo com espaços colapsados.
             where = [
                 """
                 (
@@ -172,23 +198,19 @@ class FilesRepository:
                     OR COALESCE(fm.description, '') LIKE ?
                     OR COALESCE(fm.campaign, '') LIKE ?
                     OR COALESCE(fm.status, '') LIKE ?
-                    OR COALESCE(ft.tag, '') LIKE ?
+                    OR EXISTS(SELECT 1 FROM file_tags ft WHERE ft.file_id = fm.id AND ft.tag LIKE ?)
                     OR fm.filename LIKE ?
                     OR fm.rel_path LIKE ?
                     OR COALESCE(fm.title, '') LIKE ?
                     OR COALESCE(fm.description, '') LIKE ?
                     OR COALESCE(fm.campaign, '') LIKE ?
                     OR COALESCE(fm.status, '') LIKE ?
-                    OR COALESCE(ft.tag, '') LIKE ?
+                    OR EXISTS(SELECT 1 FROM file_tags ft WHERE ft.file_id = fm.id AND ft.tag LIKE ?)
                 )
                 """
             ]
 
-            params = [
-                like_query, like_query, like_query, like_query, like_query, like_query, like_query,
-                like_spaced_query, like_spaced_query, like_spaced_query, like_spaced_query,
-                like_spaced_query, like_spaced_query, like_spaced_query,
-            ]
+            params = [like_query] * 7 + [like_spaced_query] * 7
 
             if ext:
                 where.append("LOWER(COALESCE(fm.ext, '')) = ?")
@@ -204,22 +226,18 @@ class FilesRepository:
 
             where_sql = " AND ".join(where)
 
-            count_sql = f"""
-                SELECT COUNT(DISTINCT fm.id)
-                FROM files_meta fm
-                LEFT JOIN file_tags ft ON ft.file_id = fm.id
-                WHERE {where_sql}
-            """
+            total = self._capped_count(
+                conn, f"SELECT 1 FROM files_meta fm WHERE {where_sql}", params
+            )
 
             data_sql = f"""
-                {self._base_select_sql()}
+                SELECT
+                    {_SELECT_COLS}
+                FROM files_meta fm
                 WHERE {where_sql}
-                {self._group_by_sql()}
                 ORDER BY {order_sql}
                 LIMIT ? OFFSET ?
             """
-
-            total = conn.execute(count_sql, params).fetchone()[0]
             rows = conn.execute(data_sql, params + [limit, offset]).fetchall()
             return total, rows
         finally:
@@ -257,102 +275,24 @@ class FilesRepository:
 
             where_sql = " AND ".join(where)
 
-            count_sql = f"""
-                SELECT COUNT(DISTINCT fm.id)
-                FROM files
-                JOIN files_meta fm ON fm.id = files.rowid
-                LEFT JOIN file_tags ft ON ft.file_id = fm.id
-                WHERE {where_sql}
-            """
+            # MATCH dá rowids distintos; sem o LEFT JOIN file_tags não há
+            # duplicata, então nada de GROUP BY. Tags vêm por subquery.
+            from_join = "files JOIN files_meta fm ON fm.id = files.rowid"
+
+            total = self._capped_count(
+                conn, f"SELECT 1 FROM {from_join} WHERE {where_sql}", params
+            )
 
             data_sql = f"""
                 SELECT
-                    fm.id,
-                    fm.filename,
-                    fm.rel_path,
-                    fm.ext,
-                    ROUND(fm.size_bytes / 1024.0 / 1024.0, 2) AS size_mb,
-                    fm.created_at,
-                    fm.modified_at,
-                    fm.title,
-                    fm.description,
-                    fm.campaign,
-                    fm.status,
-                    fm.is_official,
-                    fm.content_hash,
-                    GROUP_CONCAT(ft.tag, ',') AS tags
-                FROM files
-                JOIN files_meta fm ON fm.id = files.rowid
-                LEFT JOIN file_tags ft ON ft.file_id = fm.id
+                    {_SELECT_COLS}
+                FROM {from_join}
                 WHERE {where_sql}
-                GROUP BY
-                    fm.id,
-                    fm.filename,
-                    fm.rel_path,
-                    fm.ext,
-                    fm.size_bytes,
-                    fm.created_at,
-                    fm.modified_at,
-                    fm.title,
-                    fm.description,
-                    fm.campaign,
-                    fm.status,
-                    fm.is_official,
-                    fm.content_hash
                 ORDER BY {order_sql}
                 LIMIT ? OFFSET ?
             """
-
-            total = conn.execute(count_sql, params).fetchone()[0]
             rows = conn.execute(data_sql, params + [limit, offset]).fetchall()
             return total, rows
-        finally:
-            conn.close()
-
-    def list_all(
-        self,
-        order_sql: str,
-        limit: int,
-        offset: int,
-    ) -> List[sqlite3.Row]:
-        """
-        Navegação do Acervo sem filtro (query vazia). Evita o caminho do
-        search_like com `LIKE '%%'`, que fazia 14 comparações LIKE + COUNT
-        DISTINCT + GROUP BY sobre ~2.18M linhas a cada abertura (~2.8s).
-
-        Aqui: varre files_meta pela coluna ordenada (indexada), pega só a
-        página (LIMIT/OFFSET) e busca as tags dessas ≤50 linhas por subquery
-        correlacionada — nada de JOIN + GROUP BY sobre a tabela inteira. O
-        total vem do count cacheado (db_count_files), já que sem filtro o
-        total de resultados é o total de arquivos.
-        """
-        conn = self._connect()
-        try:
-            data_sql = f"""
-                SELECT
-                    fm.id,
-                    fm.filename,
-                    fm.rel_path,
-                    fm.ext,
-                    ROUND(fm.size_bytes / 1024.0 / 1024.0, 2) AS size_mb,
-                    fm.created_at,
-                    fm.modified_at,
-                    fm.title,
-                    fm.description,
-                    fm.campaign,
-                    fm.status,
-                    fm.is_official,
-                    fm.content_hash,
-                    (
-                        SELECT GROUP_CONCAT(ft.tag, ',')
-                        FROM file_tags ft
-                        WHERE ft.file_id = fm.id
-                    ) AS tags
-                FROM files_meta fm
-                ORDER BY {order_sql}
-                LIMIT ? OFFSET ?
-            """
-            return conn.execute(data_sql, [limit, offset]).fetchall()
         finally:
             conn.close()
 
@@ -380,9 +320,10 @@ class FilesRepository:
         try:
             placeholders = ",".join("?" for _ in hashes)
             sql = f"""
-                {self._base_select_sql()}
+                SELECT
+                    {_SELECT_COLS}
+                FROM files_meta fm
                 WHERE fm.content_hash IN ({placeholders})
-                {self._group_by_sql()}
                 ORDER BY fm.content_hash, fm.modified_at DESC
             """
             return conn.execute(sql, hashes).fetchall()
