@@ -14,7 +14,7 @@ services:
     volumes:
       - .:/app
       - ./logs:/app/logs
-      - /mnt/backups/indexador-data:/app/data
+      - /mnt/immich_data/indexador-data:/app/data
       - /mnt/share/:/data/indexados
       # Servidor de midias .78 (CIFS, ja montado no host em /mnt/winmkt).
       # ':ro' garante que nada no Noxis consiga escrever/apagar la.
@@ -37,7 +37,7 @@ services:
     volumes:
       - .:/app
       - ./logs:/app/logs
-      - /mnt/backups/indexador-data:/app/data
+      - /mnt/immich_data/indexador-data:/app/data
       - /mnt/share/:/data/indexados
       # Servidor de midias .78 (CIFS, ja montado no host em /mnt/winmkt).
       # ':ro' garante que nada no Noxis consiga escrever/apagar la.
