@@ -52,10 +52,13 @@ def login(payload: LoginRequest):
         )
 
     # Registra o último acesso (exibido na tela de admin de usuários).
-    # Best-effort: falha aqui não deve impedir o login.
+    # Best-effort: falha aqui não deve impedir o login. busy_timeout alto p/
+    # não perder a disputa de write-lock com o indexer durante uma varredura
+    # (sem ele, o UPDATE falhava calado no meio de um scan pesado).
     try:
-        upd = sqlite3.connect(DB_PATH)
+        upd = sqlite3.connect(DB_PATH, timeout=30)
         try:
+            upd.execute("PRAGMA busy_timeout=30000;")
             upd.execute(
                 "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
                 (user["id"],),
