@@ -155,6 +155,27 @@ def ensure_content_hash_column(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def ensure_users_columns(conn: sqlite3.Connection) -> None:
+    """
+    Migração idempotente: adiciona users.last_login se ainda não existir.
+    A tabela users é criada fora do código (manualmente), então só migra se
+    ela já existir — não cria do zero. Registra o último login bem-sucedido
+    (ver app/routers/auth.py), exibido na tela de admin de usuários.
+    """
+    cur = conn.cursor()
+    tables = {
+        row["name"]
+        for row in cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    }
+    if "users" not in tables:
+        return
+
+    cols = {row["name"] for row in cur.execute("PRAGMA table_info(users)")}
+    if "last_login" not in cols:
+        cur.execute("ALTER TABLE users ADD COLUMN last_login TEXT;")
+    conn.commit()
+
+
 def ensure_history_table(conn: sqlite3.Connection) -> None:
     cur = conn.cursor()
     cur.execute("""

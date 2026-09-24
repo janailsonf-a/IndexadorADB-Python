@@ -20,6 +20,13 @@ class Settings:
     log_path: str = os.getenv("LOG_PATH", "logs/app.log")
     max_preview_size_mb: int = int(os.getenv("MAX_PREVIEW_SIZE_MB", "50"))
     max_download_size_mb: int = int(os.getenv("MAX_DOWNLOAD_SIZE_MB", "2048"))
+    # Base pública p/ montar o caminho que o usuário cola no Explorer/Finder.
+    # Sem isso, full_path volta como caminho Linux do servidor (inútil p/ colar).
+    # Ex Windows: \\\\192.168.0.78\\revisao  (UNC do share do acervo)
+    # Ex Mac:     smb://192.168.0.78/revisao
+    # PathConverter (app/path_converter.py) troca o ROOT_DIR por essa base.
+    public_smb_windows: str | None = os.getenv("PUBLIC_SMB_WINDOWS") or None
+    public_smb_mac: str | None = os.getenv("PUBLIC_SMB_MAC") or None
 
     def validate(self) -> None:
         errors: list[str] = []

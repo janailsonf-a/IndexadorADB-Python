@@ -313,6 +313,45 @@ class FilesRepository:
         finally:
             conn.close()
 
+    def distribution(self, campaign_limit: int = 5) -> dict:
+        """
+        Distribuição REAL sobre TODO o acervo (não só a página em memória):
+        contagem por extensão + top campanhas. Alimenta a tela de Analytics,
+        que antes agregava apenas os itens carregados no cliente (não
+        representativo dos ~2.18M arquivos).
+        """
+        conn = self._connect()
+        try:
+            ext_rows = conn.execute(
+                """
+                SELECT LOWER(LTRIM(COALESCE(NULLIF(ext, ''), 'sem_ext'), '.')) AS ext,
+                       COUNT(*) AS qty
+                FROM files_meta
+                GROUP BY LOWER(LTRIM(COALESCE(NULLIF(ext, ''), 'sem_ext'), '.'))
+                ORDER BY qty DESC
+                """
+            ).fetchall()
+            campaign_rows = conn.execute(
+                """
+                SELECT campaign AS name, COUNT(*) AS qty
+                FROM files_meta
+                WHERE campaign IS NOT NULL AND campaign != ''
+                GROUP BY campaign
+                ORDER BY qty DESC
+                LIMIT ?
+                """,
+                (campaign_limit,),
+            ).fetchall()
+            return {
+                "by_ext": {r["ext"]: r["qty"] for r in ext_rows},
+                "top_campaigns": [
+                    {"name": r["name"], "count": r["qty"]} for r in campaign_rows
+                ],
+                "total": sum(r["qty"] for r in ext_rows),
+            }
+        finally:
+            conn.close()
+
     def files_by_content_hashes(self, hashes: List[str]) -> List[sqlite3.Row]:
         if not hashes:
             return []

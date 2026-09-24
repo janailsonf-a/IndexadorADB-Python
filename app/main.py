@@ -16,6 +16,7 @@ from app.db import (
     ensure_files_schema,
     ensure_metadata_columns,
     ensure_content_hash_column,
+    ensure_users_columns,
     ensure_history_table,
     ensure_indexer_status_table,
 )
@@ -39,6 +40,7 @@ async def lifespan(app: FastAPI):
         ensure_files_schema(conn)
         ensure_metadata_columns(conn)
         ensure_content_hash_column(conn)
+        ensure_users_columns(conn)
         ensure_history_table(conn)
         ensure_indexer_status_table(conn)
         ensure_activities_table(conn)

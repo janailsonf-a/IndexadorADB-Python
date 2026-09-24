@@ -10,7 +10,7 @@ services:
     environment:
       # Nao calcular SHA-256 do conteudo em montagem de rede (leria tudo via CIFS,
       # horas de trafego). Esses arquivos ficam com content_hash vazio.
-      - HASH_SKIP_PREFIXES=_winmkt
+      - HASH_SKIP_PREFIXES=_winmkt,mkt-jobs
     volumes:
       - .:/app
       - ./logs:/app/logs
@@ -19,6 +19,9 @@ services:
       # Servidor de midias .78 (CIFS, ja montado no host em /mnt/winmkt).
       # ':ro' garante que nada no Noxis consiga escrever/apagar la.
       - /mnt/winmkt:/data/indexados/_winmkt:ro
+      # Mkt-jobs (sugestao do Ivan): montado no host acervo em /mnt/mkt-jobs.
+      # ':ro' = so leitura. Indexado como subdir do acervo; ver HASH_SKIP_PREFIXES.
+      - /mnt/mkt-jobs:/data/indexados/mkt-jobs:ro
     restart: unless-stopped
 
   indexer:
@@ -30,7 +33,7 @@ services:
     environment:
       # Nao calcular SHA-256 do conteudo em montagem de rede (leria tudo via CIFS,
       # horas de trafego). Esses arquivos ficam com content_hash vazio.
-      - HASH_SKIP_PREFIXES=_winmkt
+      - HASH_SKIP_PREFIXES=_winmkt,mkt-jobs
       # Hora do dia p/ rodar a indexacao (fora do expediente). Container em UTC
       # + galpao UTC-3 => 5 = ~02:00 local. Ver scripts/run_indexer.sh.
       - INDEXER_HOUR=5
@@ -42,4 +45,7 @@ services:
       # Servidor de midias .78 (CIFS, ja montado no host em /mnt/winmkt).
       # ':ro' garante que nada no Noxis consiga escrever/apagar la.
       - /mnt/winmkt:/data/indexados/_winmkt:ro
+      # Mkt-jobs (sugestao do Ivan): montado no host acervo em /mnt/mkt-jobs.
+      # ':ro' = so leitura. Indexado como subdir do acervo; ver HASH_SKIP_PREFIXES.
+      - /mnt/mkt-jobs:/data/indexados/mkt-jobs:ro
     restart: unless-stopped

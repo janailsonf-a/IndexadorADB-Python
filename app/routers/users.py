@@ -15,6 +15,7 @@ router = APIRouter(tags=["users"])
 
 
 def row_to_user_dict(row) -> dict:
+    keys = row.keys()
     return {
         "id": row["id"],
         "name": row["name"],
@@ -23,6 +24,7 @@ def row_to_user_dict(row) -> dict:
         "is_active": bool(row["is_active"]),
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
+        "last_login": row["last_login"] if "last_login" in keys else None,
     }
 
 
@@ -80,7 +82,7 @@ def update_me(
 
     updated = conn.execute(
         """
-        SELECT id, name, email, role, is_active, created_at, updated_at
+        SELECT id, name, email, role, is_active, created_at, updated_at, last_login
         FROM users
         WHERE id = ?
         """,
@@ -97,7 +99,7 @@ def list_users(
 ):
     users = conn.execute(
         """
-        SELECT id, name, email, role, is_active, created_at, updated_at
+        SELECT id, name, email, role, is_active, created_at, updated_at, last_login
         FROM users
         ORDER BY id DESC
         """
@@ -136,7 +138,7 @@ def create_user(
 
     user = conn.execute(
         """
-        SELECT id, name, email, role, is_active, created_at, updated_at
+        SELECT id, name, email, role, is_active, created_at, updated_at, last_login
         FROM users
         WHERE id = ?
         """,
@@ -222,7 +224,7 @@ def update_user(
 
     updated = conn.execute(
         """
-        SELECT id, name, email, role, is_active, created_at, updated_at
+        SELECT id, name, email, role, is_active, created_at, updated_at, last_login
         FROM users
         WHERE id = ?
         """,
