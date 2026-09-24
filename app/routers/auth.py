@@ -51,6 +51,21 @@ def login(payload: LoginRequest):
             detail="Credenciais inválidas",
         )
 
+    # Registra o último acesso (exibido na tela de admin de usuários).
+    # Best-effort: falha aqui não deve impedir o login.
+    try:
+        upd = sqlite3.connect(DB_PATH)
+        try:
+            upd.execute(
+                "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
+                (user["id"],),
+            )
+            upd.commit()
+        finally:
+            upd.close()
+    except sqlite3.Error:
+        pass
+
     token = create_access_token(
         {
             "sub": user["email"],

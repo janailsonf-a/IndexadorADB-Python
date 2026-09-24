@@ -155,6 +155,27 @@ def ensure_content_hash_column(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def ensure_users_columns(conn: sqlite3.Connection) -> None:
+    """
+    Migração idempotente: adiciona users.last_login se ainda não existir.
+    A tabela users é criada fora do código (manualmente), então só migra se
+    ela já existir — não cria do zero. Registra o último login bem-sucedido
+    (ver app/routers/auth.py), exibido na tela de admin de usuários.
+    """
+    cur = conn.cursor()
+    tables = {
+        row["name"]
+        for row in cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    }
+    if "users" not in tables:
+        return
+
+    cols = {row["name"] for row in cur.execute("PRAGMA table_info(users)")}
+    if "last_login" not in cols:
+        cur.execute("ALTER TABLE users ADD COLUMN last_login TEXT;")
+    conn.commit()
+
+
 def ensure_history_table(conn: sqlite3.Connection) -> None:
     cur = conn.cursor()
     cur.execute("""
@@ -206,9 +227,15 @@ def get_meta(conn: sqlite3.Connection, key: str) -> Optional[str]:
 
 
 def get_db():
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+    # Alinhado com connect()/db_connect(): WAL + busy_timeout p/ não dar
+    # "database is locked" sob concorrência com o indexer (antes esta conexão
+    # não tinha nenhum, era a única fora do padrão).
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    conn.execute("PRAGMA busy_timeout=10000;")
     try:
         yield conn
     finally:

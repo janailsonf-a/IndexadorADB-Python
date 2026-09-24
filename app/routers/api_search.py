@@ -1,12 +1,26 @@
 from fastapi import APIRouter, Depends, Query, Request
 
-from app.auth import get_current_user
+from app.auth import get_current_user, require_admin
 from app.core.constants import PAGE_SIZE_DEFAULT
+from app.repositories.files_repository import FilesRepository
 from app.schemas.search import SearchResponse, DuplicatesResponse
 from app.services.search_service import SearchService
 
 router = APIRouter(prefix="/api", tags=["api-search"])
 search_service = SearchService()
+files_repo = FilesRepository()
+
+
+@router.get("/analytics/distribution")
+def api_analytics_distribution(
+    campaign_limit: int = Query(default=5, ge=1, le=50),
+    current_user: dict = Depends(require_admin),
+):
+    """
+    Distribuição por tipo/campanha sobre TODO o acervo (agregação no banco),
+    para a tela de Analytics não depender só dos itens carregados no cliente.
+    """
+    return files_repo.distribution(campaign_limit=campaign_limit)
 
 
 @router.get("/duplicates", response_model=DuplicatesResponse)
